@@ -6,6 +6,7 @@
   <title>Annai's Kitchen – Homemade Foods, Jewelry & Sarees</title>
   <meta name="description" content="Authentic homemade foods, handcrafted jewelry & handwoven sarees from Tamil Nadu. Order fresh pickles, malts, spices and more from Annai's Kitchen." />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -30,7 +31,9 @@
       <button class="btn-primary" style="background:#fff;color:#333;border:1.5px solid #e0e0e0;margin-bottom:10px;" onclick="googleLogin()">
         <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;" alt="Google" /> &nbsp; Continue with Google
       </button>
-      <div class="or-divider">or use phone</div>
+      <div class="or-divider">or use phone + email</div>
+      <label class="field-label">Email Address <span style="color:#aaa;font-weight:400;">(for OTP)</span></label>
+      <input class="form-input" id="loginEmail" type="email" placeholder="you@gmail.com" />
       <label class="field-label">Mobile Number <span>*</span></label>
       <input class="form-input" id="loginPhone" type="tel" placeholder="+91 9999999999" />
       <div id="otpLoginSection" style="display:none;">
@@ -43,7 +46,7 @@
           <input class="otp-box" maxlength="1" id="otp5" oninput="moveOtp(this,'otp6')" />
           <input class="otp-box" maxlength="1" id="otp6" oninput="verifyOtp()" />
         </div>
-        <p style="font-size:12px;color:#888;text-align:center;margin-bottom:14px;">Demo OTP: <b>123456</b></p>
+        <p style="font-size:12px;color:#888;text-align:center;margin-bottom:14px;">OTP sent — check your email or toast notification</p>
       </div>
       <button class="btn-primary" id="loginBtn" onclick="requestOtp()">Send OTP</button>
     </div>
@@ -55,7 +58,9 @@
       <button class="btn-primary" style="background:#fff;color:#333;border:1.5px solid #e0e0e0;margin-bottom:10px;" onclick="googleLogin()">
         <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;" alt="Google" /> &nbsp; Sign up with Google
       </button>
-      <div class="or-divider">or use phone</div>
+      <div class="or-divider">or use phone + email</div>
+      <label class="field-label">Email Address <span style="color:#aaa;font-weight:400;">(for OTP)</span></label>
+      <input class="form-input" id="signupEmail" type="email" placeholder="you@gmail.com" />
       <label class="field-label">Mobile Number <span>*</span></label>
       <input class="form-input" id="signupPhone" type="tel" placeholder="+91 9999999999" />
       <div id="otpSignupSection" style="display:none;">
@@ -68,16 +73,14 @@
           <input class="otp-box" maxlength="1" id="sotp5" oninput="moveOtp(this,'sotp6')" />
           <input class="otp-box" maxlength="1" id="sotp6" oninput="verifySignupOtp()" />
         </div>
-        <p style="font-size:12px;color:#888;text-align:center;margin-bottom:14px;">Demo OTP: <b>123456</b></p>
+        <p style="font-size:12px;color:#888;text-align:center;margin-bottom:14px;">OTP sent — check your email or toast notification</p>
       </div>
       <button class="btn-primary" id="signupBtn" onclick="requestSignupOtp()">Send OTP</button>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     ORDER MODAL
-══════════════════════════════════════════ -->
+<!-- ORDER MODAL -->
 <div class="modal-overlay" id="orderModal">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('orderModal')">✕</button>
@@ -88,13 +91,10 @@
       <div class="step-dot"      id="sdot3"></div>
     </div>
 
-    <!-- STEP 1: Details -->
+    <!-- STEP 1: Delivery Details -->
     <div class="order-step active" id="ostep1">
-      <div class="modal-sub">Fill your order details</div>
-      <label class="field-label">Product Name <span>*</span></label>
-      <input class="form-input" id="o-product" type="text" placeholder="e.g. Raw Mango Pickle" readonly />
-      <label class="field-label">Quantity <span>*</span></label>
-      <input class="form-input" id="o-qty" type="number" min="1" value="1" placeholder="e.g. 2" />
+      <div class="modal-sub">Your cart items</div>
+      <div id="o-cart-summary" class="order-cart-summary"></div>
       <label class="field-label">Primary Phone <span>*</span></label>
       <input class="form-input" id="o-phone1" type="tel" placeholder="+91 9999999999" />
       <label class="field-label">Secondary Phone <span style="color:#aaa;font-weight:400;">(optional)</span></label>
@@ -108,12 +108,12 @@
     <div class="order-step" id="ostep2">
       <div class="modal-sub">Review your order before placing</div>
       <div class="preview-box">
-        <div class="preview-row"><span class="preview-label">Product</span>         <span class="preview-value" id="prev-product"></span></div>
-        <div class="preview-row"><span class="preview-label">Quantity</span>         <span class="preview-value" id="prev-qty"></span></div>
-        <div class="preview-row"><span class="preview-label">Primary Phone</span>    <span class="preview-value" id="prev-phone1"></span></div>
-        <div class="preview-row"><span class="preview-label">Secondary Phone</span>  <span class="preview-value" id="prev-phone2"></span></div>
-        <div class="preview-row"><span class="preview-label">Address</span>          <span class="preview-value" id="prev-address"></span></div>
-        <div class="preview-row"><span class="preview-label">Customer</span>         <span class="preview-value" id="prev-customer"></span></div>
+        <div id="prev-items"></div>
+        <div class="preview-row"><span class="preview-label">Total</span>       <span class="preview-value" id="prev-total"></span></div>
+        <div class="preview-row"><span class="preview-label">Primary Phone</span><span class="preview-value" id="prev-phone1"></span></div>
+        <div class="preview-row"><span class="preview-label">Sec. Phone</span>   <span class="preview-value" id="prev-phone2"></span></div>
+        <div class="preview-row"><span class="preview-label">Address</span>      <span class="preview-value" id="prev-address"></span></div>
+        <div class="preview-row"><span class="preview-label">Customer</span>     <span class="preview-value" id="prev-customer"></span></div>
       </div>
       <button class="btn-primary"   onclick="placeOrder()">✅ Place Order</button>
       <button class="btn-secondary" onclick="goBackToEdit()">✏️ Edit Details</button>
@@ -180,7 +180,7 @@
   </div>
   <!-- Logged-in user badge -->
   <div id="userBadgeWrap" class="user-badge-wrap" style="display:none;">
-    <div class="user-badge">👤 <span id="userNameDisplay"></span></div>
+    <div class="user-badge">👤 <span id="userNameDisplay"></span><br/><span id="userDeviceId" style="font-size:9px;opacity:0.75;letter-spacing:0.5px;"></span></div>
     <button class="hero-top-btn" onclick="logoutUser()">Logout</button>
   </div>
 
@@ -200,7 +200,24 @@
   <button class="tab-btn"        data-section="sarees"  onclick="showSection('sarees')">🥻 Sarees</button>
   <button class="tab-btn"        data-section="contact" onclick="showSection('contact')">📞 Contact</button>
   <button class="tab-btn"        data-section="admin"   id="adminTabBtn" onclick="showSection('admin')" style="display:none;">⚙️ Admin</button>
+  <button class="cart-nav-btn" onclick="openCart()" title="View Cart">🛒 <span class="cart-badge" id="cartBadge" style="display:none;">0</span></button>
 </nav>
+
+<!-- CART DRAWER -->
+<div class="cart-drawer" id="cartDrawer">
+  <div class="cart-overlay" onclick="closeCart()"></div>
+  <div class="cart-panel">
+    <div class="cart-header">
+      <h3>🛒 My Cart</h3>
+      <button class="cart-close-btn" onclick="closeCart()">✕</button>
+    </div>
+    <div class="cart-body" id="cartBody"></div>
+    <div class="cart-footer" id="cartFooter" style="display:none;">
+      <div class="cart-total-row">Total: <span id="cartTotal">₹0</span></div>
+      <button class="btn-primary" onclick="checkoutCart()">Place Order →</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════
      FOODS SECTION

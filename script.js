@@ -6,10 +6,111 @@ const ADMIN_PASS  = 'Alproduct@2026';
 const ADMIN_EMAIL = 'alproductinfo2026@gmail.com';
 const ADMIN_WA    = '919944124864';
 
-let isAdmin      = false;
-let currentUser  = null; // { name, phone }
-let newImgData   = null;
-let editImgData  = null;
+// ── EmailJS — set EMAILJS_ENABLED=true after creating account at emailjs.com ──
+// Steps: 1) emailjs.com free account  2) Add Gmail service  3) Create template
+// Template variables needed: {{to_email}}, {{otp_code}}, {{customer_name}}
+const EMAILJS_ENABLED     = false;           // ← flip to true after setup
+const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
+const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
+const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
+
+let isAdmin     = false;
+let currentUser = null; // { name, phone, email, deviceId }
+let newImgData  = null;
+let editImgData = null;
+let otpStore    = { otp:null, expires:null };
+let sotpStore   = { otp:null, expires:null };
+
+// ── Device ID ──
+function getDeviceId() {
+  let id = localStorage.getItem('ak_device_id');
+  if (!id) {
+    id = 'AK-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
+    localStorage.setItem('ak_device_id', id);
+  }
+  return id;
+}
+
+// ── Cart helpers ──
+function getCart()      { const s=localStorage.getItem('ak_cart'); return s?JSON.parse(s):[]; }
+function saveCart(c)    { localStorage.setItem('ak_cart',JSON.stringify(c)); }
+
+function addToCart(productId) {
+  if (!currentUser) { showToast('Please login first! 🔑'); openModal('authModal'); return; }
+  const prod = getProducts().find(p=>p.id===productId);
+  if (!prod) return;
+  const cart = getCart();
+  const ex   = cart.find(c=>c.id===productId);
+  if (ex) { ex.qty+=1; } else { cart.push({id:prod.id,name:prod.name,price:prod.price,qty:1,emoji:prod.emoji,img:prod.img||null}); }
+  saveCart(cart); updateCartBadge();
+  showToast(`"${prod.name}" added to cart! 🛒`);
+}
+
+function removeFromCart(id) { saveCart(getCart().filter(c=>c.id!==id)); renderCart(); updateCartBadge(); }
+
+function updateCartQty(id,delta) {
+  const cart=getCart(); const item=cart.find(c=>c.id===id);
+  if (!item) return;
+  item.qty=Math.max(1,item.qty+delta);
+  saveCart(cart); renderCart(); updateCartBadge();
+}
+
+function updateCartBadge() {
+  const total=getCart().reduce((s,c)=>s+c.qty,0);
+  const b=document.getElementById('cartBadge');
+  if(b){ b.textContent=total; b.style.display=total>0?'flex':'none'; }
+}
+
+function getCartTotal() {
+  return getCart().reduce((s,item)=>{ const n=parseFloat(item.price.replace('₹','')); return s+(isNaN(n)?0:n*item.qty); },0);
+}
+
+function openCart()  { renderCart(); document.getElementById('cartDrawer').classList.add('open'); document.body.style.overflow='hidden'; }
+function closeCart() { document.getElementById('cartDrawer').classList.remove('open'); document.body.style.overflow=''; }
+
+function renderCart() {
+  const cart=getCart();
+  const body=document.getElementById('cartBody');
+  const foot=document.getElementById('cartFooter');
+  if(!body) return;
+  if(cart.length===0) {
+    body.innerHTML='<div class="cart-empty"><div style="font-size:3rem">🛒</div><p>Your cart is empty</p><small>Add items from the store</small></div>';
+    if(foot) foot.style.display='none'; return;
+  }
+  if(foot) foot.style.display='block';
+  const hasEnq=cart.some(c=>c.price==='Enquire');
+  const numTot=getCartTotal();
+  body.innerHTML=cart.map(item=>{
+    const n=parseFloat(item.price.replace('₹',''));
+    const sub=isNaN(n)?'Enquire':'₹'+(n*item.qty);
+    return `<div class="cart-item">
+      <div class="cart-item-thumb">${item.img?`<img src="${item.img}" alt=""/>`:`<span>${item.emoji}</span>`}</div>
+      <div class="cart-item-info"><div class="cart-item-name">${escapeHtml(item.name)}</div><div class="cart-item-price">${item.price} × ${item.qty} = <b>${sub}</b></div></div>
+      <div class="cart-item-controls">
+        <button class="qty-btn" onclick="updateCartQty(${item.id},-1)">−</button>
+        <span class="qty-val">${item.qty}</span>
+        <button class="qty-btn" onclick="updateCartQty(${item.id},+1)">+</button>
+        <button class="cart-remove" onclick="removeFromCart(${item.id})">🗑</button>
+      </div></div>`;
+  }).join('');
+  const tot=document.getElementById('cartTotal');
+  if(tot) tot.textContent=numTot>0?`₹${numTot}${hasEnq?' + Enquire items':''}`:'Enquire for pricing';
+}
+
+function checkoutCart() {
+  const cart=getCart();
+  if(cart.length===0){ showToast('Cart is empty!'); return; }
+  closeCart();
+  document.getElementById('o-qty').value=1;
+  document.getElementById('o-phone1').value=(currentUser.phone&&currentUser.phone!=='via Google')?currentUser.phone:'';
+  document.getElementById('o-phone2').value='';
+  document.getElementById('o-address').value='';
+  // Show cart summary in order modal
+  const sumEl=document.getElementById('o-cart-summary');
+  if(sumEl) sumEl.innerHTML=cart.map(i=>`<div class="order-summary-row"><span>${escapeHtml(i.name)}</span><span>× ${i.qty} — ${i.price}</span></div>`).join('');
+  setOrderStep(1);
+  openModal('orderModal');
+}
 
 // ── Utility: escape HTML special chars to prevent XSS in rendered HTML ──
 function escapeHtml(str) {
@@ -105,13 +206,9 @@ function renderGrid(gridId, prods) {
     </div>
   `).join('');
 
-  // Attach click handlers after render (event delegation)
+  // Attach click — now adds to cart instead of single-item order
   grid.querySelectorAll('.btn-order-now').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id   = parseInt(btn.dataset.productId);
-      const prod = getProducts().find(pr => pr.id === id);
-      if (prod) startOrder(prod.name);
-    });
+    btn.addEventListener('click', () => addToCart(parseInt(btn.dataset.productId)));
   });
 }
 
@@ -163,12 +260,25 @@ function googleLogin() {
   loginSuccess('Google User', 'via Google');
 }
 
+function generateOtp() { return Math.floor(100000+Math.random()*900000).toString(); }
+
 function requestOtp() {
+  const email = document.getElementById('loginEmail')?.value.trim()||'';
   const phone = document.getElementById('loginPhone').value.trim();
   if (!phone) { showToast('Enter your phone number!'); return; }
-  document.getElementById('otpLoginSection').style.display = 'block';
-  document.getElementById('loginBtn').textContent = 'Resend OTP';
-  showToast('OTP sent! (Demo OTP: 123456)');
+  const otp = generateOtp();
+  otpStore = { otp, expires: Date.now()+5*60*1000 };
+  const btn = document.getElementById('loginBtn');
+  if (EMAILJS_ENABLED && email) {
+    btn.textContent='Sending...'; btn.disabled=true;
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {to_email:email, otp_code:otp, customer_name:'Customer'})
+      .then(()=>{ document.getElementById('otpLoginSection').style.display='block'; btn.textContent='Resend OTP'; btn.disabled=false; showToast('OTP sent to your email! 📧'); })
+      .catch(()=>{ btn.textContent='Send OTP'; btn.disabled=false; showToast('Failed to send OTP!'); otpStore={otp:null,expires:null}; });
+  } else {
+    document.getElementById('otpLoginSection').style.display='block';
+    btn.textContent='Resend OTP';
+    showToast(`OTP sent! Demo OTP: ${otp}`);
+  }
 }
 
 function moveOtp(el, nextId) {
@@ -176,46 +286,58 @@ function moveOtp(el, nextId) {
 }
 
 function verifyOtp() {
-  const otp = ['otp1','otp2','otp3','otp4','otp5','otp6']
-    .map(id => document.getElementById(id).value).join('');
-  if (otp === '123456') {
-    const phone = document.getElementById('loginPhone').value.trim();
-    // BUG FIX: Clear OTP boxes after successful login
-    ['otp1','otp2','otp3','otp4','otp5','otp6'].forEach(id => { document.getElementById(id).value = ''; });
-    document.getElementById('otpLoginSection').style.display = 'none';
-    document.getElementById('loginBtn').textContent = 'Send OTP';
-    loginSuccess('Customer', phone);
-  } else if (otp.length === 6) {
-    showToast('Incorrect OTP. Try again!');
-  }
+  const entered=['otp1','otp2','otp3','otp4','otp5','otp6'].map(id=>document.getElementById(id).value).join('');
+  if (!otpStore.otp) { showToast('Request OTP first!'); return; }
+  if (Date.now()>otpStore.expires) { showToast('OTP expired! Resend.'); otpStore={otp:null,expires:null}; return; }
+  if (entered===otpStore.otp) {
+    const phone=document.getElementById('loginPhone').value.trim();
+    const email=document.getElementById('loginEmail')?.value.trim()||'';
+    ['otp1','otp2','otp3','otp4','otp5','otp6'].forEach(id=>{document.getElementById(id).value='';});
+    document.getElementById('otpLoginSection').style.display='none';
+    document.getElementById('loginBtn').textContent='Send OTP';
+    otpStore={otp:null,expires:null};
+    loginSuccess('Customer', phone, email);
+  } else if (entered.length===6) { showToast('Incorrect OTP. Try again!'); }
 }
 
 function requestSignupOtp() {
-  const phone = document.getElementById('signupPhone').value.trim();
+  const email=document.getElementById('signupEmail')?.value.trim()||'';
+  const phone=document.getElementById('signupPhone').value.trim();
   if (!phone) { showToast('Enter your phone number!'); return; }
-  document.getElementById('otpSignupSection').style.display = 'block';
-  document.getElementById('signupBtn').textContent = 'Resend OTP';
-  showToast('OTP sent! (Demo OTP: 123456)');
-}
-
-function verifySignupOtp() {
-  const otp = ['sotp1','sotp2','sotp3','sotp4','sotp5','sotp6']
-    .map(id => document.getElementById(id).value).join('');
-  if (otp === '123456') {
-    const name  = document.getElementById('signupName').value.trim() || 'Customer';
-    const phone = document.getElementById('signupPhone').value.trim();
-    // BUG FIX: Clear OTP boxes after successful signup
-    ['sotp1','sotp2','sotp3','sotp4','sotp5','sotp6'].forEach(id => { document.getElementById(id).value = ''; });
-    document.getElementById('otpSignupSection').style.display = 'none';
-    document.getElementById('signupBtn').textContent = 'Send OTP';
-    loginSuccess(name, phone);
-  } else if (otp.length === 6) {
-    showToast('Incorrect OTP. Try again!');
+  const otp=generateOtp();
+  sotpStore={otp,expires:Date.now()+5*60*1000};
+  const btn=document.getElementById('signupBtn');
+  if (EMAILJS_ENABLED && email) {
+    btn.textContent='Sending...'; btn.disabled=true;
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,{to_email:email,otp_code:otp,customer_name:document.getElementById('signupName').value.trim()||'Customer'})
+      .then(()=>{document.getElementById('otpSignupSection').style.display='block';btn.textContent='Resend OTP';btn.disabled=false;showToast('OTP sent to your email! 📧');})
+      .catch(()=>{btn.textContent='Send OTP';btn.disabled=false;showToast('Failed to send OTP!');sotpStore={otp:null,expires:null};});
+  } else {
+    document.getElementById('otpSignupSection').style.display='block';
+    btn.textContent='Resend OTP';
+    showToast(`OTP sent! Demo OTP: ${otp}`);
   }
 }
 
-function loginSuccess(name, phone) {
-  currentUser = { name, phone };
+function verifySignupOtp() {
+  const entered=['sotp1','sotp2','sotp3','sotp4','sotp5','sotp6'].map(id=>document.getElementById(id).value).join('');
+  if (!sotpStore.otp) { showToast('Request OTP first!'); return; }
+  if (Date.now()>sotpStore.expires) { showToast('OTP expired! Resend.'); sotpStore={otp:null,expires:null}; return; }
+  if (entered===sotpStore.otp) {
+    const name=document.getElementById('signupName').value.trim()||'Customer';
+    const phone=document.getElementById('signupPhone').value.trim();
+    const email=document.getElementById('signupEmail')?.value.trim()||'';
+    ['sotp1','sotp2','sotp3','sotp4','sotp5','sotp6'].forEach(id=>{document.getElementById(id).value='';});
+    document.getElementById('otpSignupSection').style.display='none';
+    document.getElementById('signupBtn').textContent='Send OTP';
+    sotpStore={otp:null,expires:null};
+    loginSuccess(name, phone, email);
+  } else if (entered.length===6) { showToast('Incorrect OTP. Try again!'); }
+}
+
+function loginSuccess(name, phone, email='') {
+  const deviceId = getDeviceId();
+  currentUser = { name, phone, email, deviceId };
   localStorage.setItem('ak_user', JSON.stringify(currentUser));
   closeModal('authModal');
   showUserBadge();
@@ -224,9 +346,11 @@ function loginSuccess(name, phone) {
 
 function showUserBadge() {
   if (!currentUser) return;
-  document.getElementById('heroBtns').style.display       = 'none';
-  document.getElementById('userBadgeWrap').style.display  = 'flex';
-  document.getElementById('userNameDisplay').textContent  = currentUser.name;
+  document.getElementById('heroBtns').style.display      = 'none';
+  document.getElementById('userBadgeWrap').style.display = 'flex';
+  document.getElementById('userNameDisplay').textContent = currentUser.name;
+  const did = document.getElementById('userDeviceId');
+  if (did) did.textContent = 'ID: ' + (currentUser.deviceId || getDeviceId());
 }
 
 function logoutUser() {
@@ -450,54 +574,74 @@ function setOrderStep(step) {
 }
 
 function goToPreview() {
-  const product  = document.getElementById('o-product').value;
-  const qty      = parseInt(document.getElementById('o-qty').value);
-  const phone1   = document.getElementById('o-phone1').value.trim();
-  const phone2   = document.getElementById('o-phone2').value.trim();
-  const address  = document.getElementById('o-address').value.trim();
+  const cart    = getCart();
+  const phone1  = document.getElementById('o-phone1').value.trim();
+  const phone2  = document.getElementById('o-phone2').value.trim();
+  const address = document.getElementById('o-address').value.trim();
 
-  // BUG FIX: Validate qty is a positive number
-  if (!qty || qty < 1 || !phone1 || !address) {
-    showToast('Please fill all required fields correctly!');
-    return;
-  }
-  // BUG FIX: Basic phone number format check
-  if (!/^[\d\s\+\-]{7,15}$/.test(phone1)) {
-    showToast('Enter a valid primary phone number!');
-    return;
-  }
+  if (cart.length === 0) { showToast('Cart is empty!'); return; }
+  if (!phone1 || !address) { showToast('Please fill all required fields!'); return; }
+  if (!/^[\d\s\+\-]{7,15}$/.test(phone1)) { showToast('Enter a valid phone number!'); return; }
 
-  document.getElementById('prev-product').textContent  = product;
-  document.getElementById('prev-qty').textContent      = qty;
-  document.getElementById('prev-phone1').textContent   = phone1;
-  document.getElementById('prev-phone2').textContent   = phone2 || 'Not provided';
-  document.getElementById('prev-address').textContent  = address;
+  // Build preview rows
+  const itemsHtml = cart.map(i => {
+    const n=parseFloat(i.price.replace('\u20b9',''));
+    return `<div class="preview-row"><span class="preview-label">${escapeHtml(i.name)}</span><span class="preview-value">× ${i.qty} — ${isNaN(n)?'Enquire':'\u20b9'+(n*i.qty)}</span></div>`;
+  }).join('');
+  document.getElementById('prev-items').innerHTML = itemsHtml;
+  document.getElementById('prev-phone1').textContent  = phone1;
+  document.getElementById('prev-phone2').textContent  = phone2 || 'Not provided';
+  document.getElementById('prev-address').textContent = address;
   document.getElementById('prev-customer').textContent = currentUser.name;
+  const totalNum = getCartTotal();
+  document.getElementById('prev-total').textContent = totalNum > 0 ? `\u20b9${totalNum}${cart.some(c=>c.price==='Enquire')?' + Enquire':''}`:'Enquire for pricing';
   setOrderStep(2);
 }
 
 function goBackToEdit() { setOrderStep(1); }
 
 function placeOrder() {
-  const product  = document.getElementById('o-product').value;
-  const qty      = document.getElementById('o-qty').value;
   const phone1   = document.getElementById('o-phone1').value.trim();
   const phone2   = document.getElementById('o-phone2').value.trim();
   const address  = document.getElementById('o-address').value.trim();
   const customer = currentUser.name;
+  const deviceId = currentUser.deviceId || getDeviceId();
+  const cart     = getCart();
 
-  const orderText = `🛒 NEW ORDER - Annai's Kitchen\n\nCustomer: ${customer}\nProduct: ${product}\nQuantity: ${qty}\nPrimary Phone: ${phone1}\nSecondary Phone: ${phone2 || 'N/A'}\nDelivery Address: ${address}\n\n---\nAnnai's Kitchen Order System`;
+  const itemLines = cart.map(i=>{
+    const n=parseFloat(i.price.replace('₹',''));
+    const sub=isNaN(n)?'Enquire':'₹'+(n*i.qty);
+    return `  • ${i.name} × ${i.qty} = ${sub}`;
+  }).join('\n');
 
-  // FIX: open WhatsApp first, then email after a short delay to avoid popup blocking
-  const waUrl = `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(orderText)}`;
-  window.open(waUrl, '_blank');
+  const orderText =
+`🛒 NEW ORDER — Annai's Kitchen
 
-  setTimeout(() => {
-    const subject = encodeURIComponent(`New Order: ${product} from ${customer}`);
-    const body    = encodeURIComponent(orderText);
-    window.open(`mailto:${ADMIN_EMAIL}?subject=${subject}&body=${body}`, '_blank');
-  }, 500);
+👤 Customer : ${customer}
+📱 Phone 1  : ${phone1}
+📱 Phone 2  : ${phone2||'N/A'}
+📍 Address  : ${address}
+🔖 Device ID: ${deviceId}
 
+🧺 Items:
+${itemLines}
+
+💰 Total: ₹${getCartTotal()}${cart.some(c=>c.price==='Enquire')?' + Enquire items':''}
+
+---
+Annai's Kitchen Order System`;
+
+  // WhatsApp — direct wa.me link (works reliably on mobile & desktop)
+  window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(orderText)}`,'_blank');
+
+  // Gmail compose URL — opens Gmail in browser tab (not mail app)
+  setTimeout(()=>{
+    const sub  = encodeURIComponent(`New Order from ${customer} — Annai's Kitchen`);
+    const body = encodeURIComponent(orderText);
+    window.open(`https://mail.google.com/mail/?view=cm&to=${ADMIN_EMAIL}&su=${sub}&body=${body}`,'_blank');
+  }, 600);
+
+  saveCart([]); updateCartBadge();
   setOrderStep(3);
 }
 
@@ -526,16 +670,25 @@ function sendEnquiry(method) {
 // INIT
 // ──────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  getDeviceId(); // generate device ID on first visit
   renderProducts();
+  updateCartBadge();
 
   // Restore logged-in user from localStorage
   const savedUser = localStorage.getItem('ak_user');
   if (savedUser) {
     try {
       currentUser = JSON.parse(savedUser);
+      // Ensure existing saved users get a deviceId
+      if (!currentUser.deviceId) currentUser.deviceId = getDeviceId();
       showUserBadge();
     } catch (e) {
       localStorage.removeItem('ak_user');
     }
+  }
+
+  // Init EmailJS if enabled
+  if (EMAILJS_ENABLED && typeof emailjs !== 'undefined') {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
   }
 });
