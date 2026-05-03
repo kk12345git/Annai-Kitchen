@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Annai's Kitchen – Homemade Foods, Jewelry & Sarees</title>
+  <meta name="description" content="Authentic homemade foods, handcrafted jewelry & handwoven sarees from Tamil Nadu. Order fresh pickles, malts, spices and more from Annai's Kitchen." />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     AUTH MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('authModal')">✕</button>
+    <div class="modal-title">Welcome 👋</div>
+    <div class="modal-sub">Sign in or create your account</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin"  onclick="switchAuthTab('login')">Login</button>
+      <button class="auth-tab"        id="tabSignup" onclick="switchAuthTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="loginForm">
+      <div class="or-divider">Login with</div>
+      <button class="btn-primary" style="background:#fff;color:#333;border:1.5px solid #e0e0e0;margin-bottom:10px;" onclick="googleLogin()">
+        <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;" alt="Google" /> &nbsp; Continue with Google
+      </button>
+      <div class="or-divider">or use phone</div>
+      <label class="field-label">Mobile Number <span>*</span></label>
+      <input class="form-input" id="loginPhone" type="tel" placeholder="+91 9999999999" />
+      <div id="otpLoginSection" style="display:none;">
+        <label class="field-label">Enter OTP <span>*</span></label>
+        <div class="otp-row">
+          <input class="otp-box" maxlength="1" id="otp1" oninput="moveOtp(this,'otp2')" />
+          <input class="otp-box" maxlength="1" id="otp2" oninput="moveOtp(this,'otp3')" />
+          <input class="otp-box" maxlength="1" id="otp3" oninput="moveOtp(this,'otp4')" />
+          <input class="otp-box" maxlength="1" id="otp4" oninput="moveOtp(this,'otp5')" />
+          <input class="otp-box" maxlength="1" id="otp5" oninput="moveOtp(this,'otp6')" />
+          <input class="otp-box" maxlength="1" id="otp6" oninput="verifyOtp()" />
+        </div>
+        <p style="font-size:12px;color:#888;text-align:center;margin-bottom:14px;">Demo OTP: <b>123456</b></p>
+      </div>
+      <button class="btn-primary" id="loginBtn" onclick="requestOtp()">Send OTP</button>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="signupForm" style="display:none;">
+      <label class="field-label">Full Name <span>*</span></label>
+      <input class="form-input" id="signupName" type="text" placeholder="Your Name" />
+      <button class="btn-primary" style="background:#fff;color:#333;border:1.5px solid #e0e0e0;margin-bottom:10px;" onclick="googleLogin()">
+        <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;" alt="Google" /> &nbsp; Sign up with Google
+      </button>
+      <div class="or-divider">or use phone</div>
+      <label class="field-label">Mobile Number <span>*</span></label>
+      <input class="form-input" id="signupPhone" type="tel" placeholder="+91 9999999999" />
+      <div id="otpSignupSection" style="display:none;">
+        <label class="field-label">Enter OTP <span>*</span></label>
+        <div class="otp-row">
+          <input class="otp-box" maxlength="1" id="sotp1" oninput="moveOtp(this,'sotp2')" />
+          <input class="otp-box" maxlength="1" id="sotp2" oninput="moveOtp(this,'sotp3')" />
+          <input class="otp-box" maxlength="1" id="sotp3" oninput="moveOtp(this,'sotp4')" />
+          <input class="otp-box" maxlength="1" id="sotp4" oninput="moveOtp(this,'sotp5')" />
+          <input class="otp-box" maxlength="1" id="sotp5" oninput="moveOtp(this,'sotp6')" />
+          <input class="otp-box" maxlength="1" id="sotp6" oninput="verifySignupOtp()" />
+        </div>
+        <p style="font-size:12px;color:#888;text-align:center;margin-bottom:14px;">Demo OTP: <b>123456</b></p>
+      </div>
+      <button class="btn-primary" id="signupBtn" onclick="requestSignupOtp()">Send OTP</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ORDER MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('orderModal')">✕</button>
+    <div class="modal-title">Place Order 🛒</div>
+    <div class="step-indicator">
+      <div class="step-dot done" id="sdot1"></div>
+      <div class="step-dot"      id="sdot2"></div>
+      <div class="step-dot"      id="sdot3"></div>
+    </div>
+
+    <!-- STEP 1: Details -->
+    <div class="order-step active" id="ostep1">
+      <div class="modal-sub">Fill your order details</div>
+      <label class="field-label">Product Name <span>*</span></label>
+      <input class="form-input" id="o-product" type="text" placeholder="e.g. Raw Mango Pickle" readonly />
+      <label class="field-label">Quantity <span>*</span></label>
+      <input class="form-input" id="o-qty" type="number" min="1" value="1" placeholder="e.g. 2" />
+      <label class="field-label">Primary Phone <span>*</span></label>
+      <input class="form-input" id="o-phone1" type="tel" placeholder="+91 9999999999" />
+      <label class="field-label">Secondary Phone <span style="color:#aaa;font-weight:400;">(optional)</span></label>
+      <input class="form-input" id="o-phone2" type="tel" placeholder="+91 9999999999" />
+      <label class="field-label">Delivery Address <span>*</span></label>
+      <textarea class="form-input" id="o-address" rows="3" placeholder="House No, Street, City, Pincode..."></textarea>
+      <button class="btn-primary" onclick="goToPreview()">Preview Order →</button>
+    </div>
+
+    <!-- STEP 2: Preview -->
+    <div class="order-step" id="ostep2">
+      <div class="modal-sub">Review your order before placing</div>
+      <div class="preview-box">
+        <div class="preview-row"><span class="preview-label">Product</span>         <span class="preview-value" id="prev-product"></span></div>
+        <div class="preview-row"><span class="preview-label">Quantity</span>         <span class="preview-value" id="prev-qty"></span></div>
+        <div class="preview-row"><span class="preview-label">Primary Phone</span>    <span class="preview-value" id="prev-phone1"></span></div>
+        <div class="preview-row"><span class="preview-label">Secondary Phone</span>  <span class="preview-value" id="prev-phone2"></span></div>
+        <div class="preview-row"><span class="preview-label">Address</span>          <span class="preview-value" id="prev-address"></span></div>
+        <div class="preview-row"><span class="preview-label">Customer</span>         <span class="preview-value" id="prev-customer"></span></div>
+      </div>
+      <button class="btn-primary"   onclick="placeOrder()">✅ Place Order</button>
+      <button class="btn-secondary" onclick="goBackToEdit()">✏️ Edit Details</button>
+    </div>
+
+    <!-- STEP 3: Success -->
+    <div class="order-step" id="ostep3" style="text-align:center;padding:20px 0;">
+      <div style="font-size:3.5rem;margin-bottom:16px;">🎉</div>
+      <div class="modal-title" style="margin-bottom:8px;">Order Placed!</div>
+      <p style="color:#888;font-size:14px;line-height:1.7;margin-bottom:20px;">
+        Your order has been received. Our team will contact you shortly on your phone number.
+      </p>
+      <button class="btn-primary" onclick="closeModal('orderModal')">Continue Shopping</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ADMIN LOGIN MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="adminLoginModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('adminLoginModal')">✕</button>
+    <div class="modal-title">Admin Login 🔐</div>
+    <div class="modal-sub">Enter admin credentials</div>
+    <label class="field-label">Username <span>*</span></label>
+    <input class="form-input" id="admin-user" type="text" placeholder="Username" />
+    <label class="field-label">Password <span>*</span></label>
+    <input class="form-input" id="admin-pass" type="password" placeholder="Password" />
+    <button class="btn-primary" onclick="doAdminLogin()">Login as Admin</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     EDIT PRODUCT MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="editProductModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('editProductModal')">✕</button>
+    <div class="modal-title">Edit Product ✏️</div>
+    <input type="hidden" id="edit-idx" />
+    <label class="field-label">Product Name <span>*</span></label>
+    <input class="form-input" id="edit-name" type="text" />
+    <label class="field-label">Price (₹) <span>*</span></label>
+    <input class="form-input" id="edit-price" type="text" />
+    <label class="field-label">Image</label>
+    <div class="img-upload-area" id="editImgArea">
+      <input type="file" accept="image/*" onchange="handleEditImg(this)" />
+      <div class="upload-icon">📷</div>
+      <div class="upload-text">Click to change image</div>
+    </div>
+    <button class="btn-primary" onclick="saveEditProduct()">Save Changes</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     HERO
+══════════════════════════════════════════ -->
+<div class="hero">
+  <!-- Logged-out buttons -->
+  <div id="heroBtns" class="hero-top-btns">
+    <button class="hero-top-btn" onclick="openModal('authModal')">🔑 Login / Sign Up</button>
+    <button class="hero-top-btn" onclick="openModal('adminLoginModal')" style="opacity:0.5;font-size:11px;">Admin</button>
+  </div>
+  <!-- Logged-in user badge -->
+  <div id="userBadgeWrap" class="user-badge-wrap" style="display:none;">
+    <div class="user-badge">👤 <span id="userNameDisplay"></span></div>
+    <button class="hero-top-btn" onclick="logoutUser()">Logout</button>
+  </div>
+
+  <div class="hero-badge">Homemade · Handpicked · Pure</div>
+  <h1>Annai's <span>Kitchen</span></h1>
+  <div class="hero-sub">Traditional Flavours, Timeless Style</div>
+  <p class="hero-desc">Authentic homemade foods, handcrafted jewelry &amp; handwoven sarees — straight from the heart of Tamil Nadu.</p>
+  <button class="hero-cta" onclick="showSection('foods')">🛒 Shop Now</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     DESKTOP TAB NAV
+══════════════════════════════════════════ -->
+<nav class="tabs-wrap" aria-label="Main Navigation">
+  <button class="tab-btn active" data-section="foods"   onclick="showSection('foods')">🍱 Foods</button>
+  <button class="tab-btn"        data-section="jewelry" onclick="showSection('jewelry')">💍 Jewelry</button>
+  <button class="tab-btn"        data-section="sarees"  onclick="showSection('sarees')">🥻 Sarees</button>
+  <button class="tab-btn"        data-section="contact" onclick="showSection('contact')">📞 Contact</button>
+  <button class="tab-btn"        data-section="admin"   id="adminTabBtn" onclick="showSection('admin')" style="display:none;">⚙️ Admin</button>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     FOODS SECTION
+══════════════════════════════════════════ -->
+<main>
+<section class="section active" id="sec-foods" aria-label="Foods">
+  <div class="sec-header">
+    <div class="sec-label">Homemade Goodness</div>
+    <h2 class="sec-title">Our <em>Foods</em></h2>
+    <div class="sec-divider"></div>
+  </div>
+
+  <div class="features">
+    <div class="feat"><span class="feat-icon">🏠</span> Homemade</div>
+    <div class="feat"><span class="feat-icon">🌿</span> No Preservatives</div>
+    <div class="feat"><span class="feat-icon">❤️</span> Traditional Recipe</div>
+    <div class="feat"><span class="feat-icon">📦</span> Hygienic Packing</div>
+  </div>
+
+  <div class="cat-pills">
+    <button class="cat-pill active" onclick="filterFood('all', this)">All</button>
+    <button class="cat-pill" onclick="filterFood('pickle', this)">Pickles</button>
+    <button class="cat-pill" onclick="filterFood('drink',  this)">Drinks &amp; Malts</button>
+    <button class="cat-pill" onclick="filterFood('spice',  this)">Spices</button>
+    <button class="cat-pill" onclick="filterFood('other',  this)">Other</button>
+  </div>
+
+  <div class="product-grid" id="foods-grid"></div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     JEWELRY SECTION
+══════════════════════════════════════════ -->
+<section class="section" id="sec-jewelry" aria-label="Jewelry">
+  <div class="sec-header">
+    <div class="sec-label">Handcrafted Beauty</div>
+    <h2 class="sec-title">Artificial <em>Jewelry</em></h2>
+    <div class="sec-divider"></div>
+  </div>
+  <div class="features">
+    <div class="feat"><span class="feat-icon">✨</span> Trendy Designs</div>
+    <div class="feat"><span class="feat-icon">💎</span> Premium Quality</div>
+    <div class="feat"><span class="feat-icon">🎁</span> Gift Ready</div>
+  </div>
+  <div class="product-grid" id="jewelry-grid"></div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SAREES SECTION
+══════════════════════════════════════════ -->
+<section class="section" id="sec-sarees" aria-label="Sarees">
+  <div class="sec-header">
+    <div class="sec-label">Woven with Love</div>
+    <h2 class="sec-title">Sarees &amp; <em>Kurtis</em></h2>
+    <div class="sec-divider"></div>
+  </div>
+  <div class="features">
+    <div class="feat"><span class="feat-icon">🪡</span> Handwoven</div>
+    <div class="feat"><span class="feat-icon">🌿</span> Natural Fabric</div>
+    <div class="feat"><span class="feat-icon">🇮🇳</span> Made in India</div>
+  </div>
+  <div class="product-grid" id="sarees-grid"></div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     CONTACT SECTION
+══════════════════════════════════════════ -->
+<section class="section" id="sec-contact" aria-label="Contact">
+  <div class="sec-header">
+    <div class="sec-label">We'd love to hear from you</div>
+    <h2 class="sec-title">Get in <em>Touch</em></h2>
+    <div class="sec-divider"></div>
+  </div>
+  <div class="features">
+    <div class="feat"><span class="feat-icon">🚚</span> Home Delivery</div>
+    <div class="feat"><span class="feat-icon">📦</span> Custom Orders</div>
+    <div class="feat"><span class="feat-icon">💬</span> Quick Reply</div>
+  </div>
+  <div class="contact-card">
+    <h3>Annai's Kitchen</h3>
+    <p>Order your favourite homemade foods, jewelry &amp; sarees. We deliver fresh with love. Contact us on WhatsApp or call us directly!</p>
+    <a href="https://wa.me/919944124864?text=Hi%20Annai's%20Kitchen!%20I%20want%20to%20place%20an%20order%20🛍️" class="contact-btn whatsapp">💬 WhatsApp Order</a>
+    <a href="tel:+919944124864"                   class="contact-btn">📞 Call Us</a>
+    <a href="mailto:alproductinfo2026@gmail.com"  class="contact-btn" style="background:#ea4335;">📧 Email Us</a>
+  </div>
+
+  <div style="margin-top:20px;background:#fff;border-radius:16px;padding:24px;box-shadow:var(--shadow);">
+    <div style="font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;margin-bottom:16px;color:var(--deep);">Send an Enquiry</div>
+    <input  id="enq-name"  type="text" placeholder="Your Name"  class="form-input" />
+    <input  id="enq-phone" type="tel"  placeholder="Phone Number" class="form-input" />
+    <textarea id="enq-msg" placeholder="What would you like to order? (e.g. Mango Pickle x2, Khadi Saree...)" rows="4" class="form-input"></textarea>
+    <button onclick="sendEnquiry('wa')"   class="btn-primary" style="background:#25d366;margin-bottom:10px;">💬 Send via WhatsApp</button>
+    <button onclick="sendEnquiry('mail')" class="btn-primary">📧 Send via Email</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     ADMIN SECTION
+══════════════════════════════════════════ -->
+<section class="section" id="sec-admin" aria-label="Admin Panel">
+  <div class="admin-header">
+    <div class="admin-avatar">⚙️</div>
+    <div class="admin-info">
+      <h3>Admin Panel</h3>
+      <p>alproduct2026 · Annai's Kitchen</p>
+    </div>
+    <button class="admin-logout" onclick="adminLogout()">Logout</button>
+  </div>
+
+  <!-- Add New Product -->
+  <div class="admin-section-title">➕ Add New Product</div>
+  <div class="add-product-card">
+    <label class="field-label">Product Name <span style="color:var(--rust);">*</span></label>
+    <input class="form-input" id="new-name"  type="text" placeholder="e.g. Lemon Pickle" />
+    <label class="field-label">Price (₹) <span style="color:var(--rust);">*</span></label>
+    <input class="form-input" id="new-price" type="text" placeholder="e.g. 120" />
+    <label class="field-label">Category <span style="color:var(--rust);">*</span></label>
+    <select class="form-input" id="new-cat">
+      <option value="pickle">Pickle</option>
+      <option value="drink">Drink / Malt</option>
+      <option value="spice">Spice</option>
+      <option value="jewelry">Jewelry</option>
+      <option value="saree">Saree / Kurti</option>
+      <option value="other">Other</option>
+    </select>
+    <label class="field-label">Product Image</label>
+    <div class="img-upload-area" id="newImgArea">
+      <input type="file" accept="image/*" onchange="handleNewImg(this)" />
+      <div class="upload-icon">📷</div>
+      <div class="upload-text">Click to upload product image</div>
+    </div>
+    <button class="btn-primary" onclick="addProduct()">Add Product →</button>
+  </div>
+
+  <!-- Manage Products -->
+  <div class="admin-section-title">📦 Manage Products</div>
+  <div id="adminProductList" class="admin-product-list"></div>
+</section>
+</main>
+
+<!-- ══════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════ -->
+<footer class="footer">
+  Made with ❤️ by <span>Annai's Kitchen</span> &nbsp;|&nbsp; Authentic Tamil Nadu Products
+</footer>
+
+<!-- ══════════════════════════════════════════
+     MOBILE BOTTOM NAV
+══════════════════════════════════════════ -->
+<nav class="bottom-nav" aria-label="Mobile Navigation">
+  <div class="bottom-nav-inner">
+    <button class="bnav-btn active" id="bnav-foods"   onclick="showSection('foods')"><span class="icon">🍱</span>Foods</button>
+    <button class="bnav-btn"        id="bnav-jewelry" onclick="showSection('jewelry')"><span class="icon">💍</span>Jewelry</button>
+    <button class="bnav-btn"        id="bnav-sarees"  onclick="showSection('sarees')"><span class="icon">🥻</span>Sarees</button>
+    <button class="bnav-btn"        id="bnav-contact" onclick="showSection('contact')"><span class="icon">📞</span>Contact</button>
+    <button class="bnav-btn"        id="bnav-admin"   onclick="showSection('admin')" style="display:none;"><span class="icon">⚙️</span>Admin</button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     TOAST NOTIFICATION
+══════════════════════════════════════════ -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
