@@ -60,14 +60,15 @@ function getDeviceId() {
 function getCart()      { const s=localStorage.getItem('ak_cart'); return s?JSON.parse(s):[]; }
 function saveCart(c)    { localStorage.setItem('ak_cart',JSON.stringify(c)); }
 
-function addToCart(productId) {
+function addToCart(productId, openNow = false) {
   const prod = getProducts().find(p=>p.id===productId);
   if (!prod) return;
   const cart = getCart();
   const ex   = cart.find(c=>c.id===productId);
-  if (ex) { ex.qty+=1; } else { cart.push({id:prod.id,name:prod.name,price:prod.price,qty:1,emoji:prod.emoji,img:prod.img||null}); }
+  if (ex) { ex.qty+=1; } else { cart.push({id:prod.id,name:prod.name,price:prod.price,qty:1,emoji:prod.emoji,img:prod.img||null,cat:prod.cat}); }
   saveCart(cart); updateCartBadge();
   showToast(`"${prod.name}" added to cart! 🛒`);
+  if (openNow) openCart();
 }
 
 function removeFromCart(id) { saveCart(getCart().filter(c=>c.id!==id)); renderCart(); updateCartBadge(); }
@@ -326,9 +327,9 @@ function renderGrid(gridId, prods) {
     </div>
   `).join('');
 
-  // Attach click — now adds to cart instead of single-item order
+  // Attach click — now adds to cart and opens it immediately
   grid.querySelectorAll('.btn-order-now').forEach(btn => {
-    btn.addEventListener('click', () => addToCart(parseInt(btn.dataset.productId)));
+    btn.addEventListener('click', () => addToCart(parseInt(btn.dataset.productId), true));
   });
 }
 
