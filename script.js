@@ -21,6 +21,23 @@ const FORMSPREE_ID = 'xdabegrq';
 // ── Google Login Configuration ──
 const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
+// ── Intersection Observer for Scroll Reveals ──
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('revealed');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+function initReveals() {
+  document.querySelectorAll('.product-card, .feat, .sec-header').forEach(el => {
+    el.classList.add('reveal-item');
+    revealObserver.observe(el);
+  });
+}
+
 let isAdmin     = false;
 let currentUser = null; // { name, phone, email, deviceId }
 let newImgData  = null;
@@ -242,6 +259,7 @@ function renderProducts() {
   renderGrid('foods-grid',   filterAndSort(prods.filter(p => ['pickle','drink','spice','other'].includes(p.cat)), foodCategory));
   renderGrid('jewelry-grid', filterAndSort(prods.filter(p => p.cat === 'jewelry')));
   renderGrid('sarees-grid',  filterAndSort(prods.filter(p => p.cat === 'saree')));
+  initReveals(); // Re-init reveals for new grid items
 }
 
 function renderGrid(gridId, prods) {
@@ -367,22 +385,42 @@ function requestOtp() {
 }
 
 function moveOtp(el, nextId) {
-  if (el.value && nextId) document.getElementById(nextId)?.focus();
+  if (el.value && nextId) {
+    const nextEl = document.getElementById(nextId);
+    nextEl?.focus();
+    nextEl?.classList.add('glow-pulse');
+    setTimeout(() => nextEl?.classList.remove('glow-pulse'), 500);
+  }
 }
 
 function verifyOtp() {
   const entered=['otp1','otp2','otp3','otp4','otp5','otp6'].map(id=>document.getElementById(id).value).join('');
   if (!otpStore.otp) { showToast('Request OTP first!'); return; }
   if (Date.now()>otpStore.expires) { showToast('OTP expired! Resend.'); otpStore={otp:null,expires:null}; return; }
-  if (entered===otpStore.otp) {
-    const phone=document.getElementById('loginPhone').value.trim();
-    const email=document.getElementById('loginEmail')?.value.trim()||'';
-    ['otp1','otp2','otp3','otp4','otp5','otp6'].forEach(id=>{document.getElementById(id).value='';});
-    document.getElementById('otpLoginSection').style.display='none';
-    document.getElementById('loginBtn').textContent='Send OTP';
-    otpStore={otp:null,expires:null};
-    loginSuccess('Customer', phone, email);
-  } else if (entered.length===6) { showToast('Incorrect OTP. Try again!'); }
+  
+  if (entered.length === 6) {
+    const btn = document.getElementById('loginBtn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Verifying...';
+    btn.disabled = true;
+
+    setTimeout(() => {
+      if (entered === otpStore.otp) {
+        const phone = document.getElementById('loginPhone').value.trim();
+        const email = document.getElementById('loginEmail')?.value.trim()||'';
+        ['otp1','otp2','otp3','otp4','otp5','otp6'].forEach(id=>{document.getElementById(id).value='';});
+        document.getElementById('otpLoginSection').style.display='none';
+        btn.textContent = 'Send OTP';
+        btn.disabled = false;
+        otpStore = {otp:null, expires:null};
+        loginSuccess('Customer', phone, email);
+      } else {
+        btn.textContent = originalText;
+        btn.disabled = false;
+        showToast('Access Denied: Incorrect OTP ❌');
+      }
+    }, 1500);
+  }
 }
 
 function requestSignupOtp() {
@@ -408,16 +446,31 @@ function verifySignupOtp() {
   const entered=['sotp1','sotp2','sotp3','sotp4','sotp5','sotp6'].map(id=>document.getElementById(id).value).join('');
   if (!sotpStore.otp) { showToast('Request OTP first!'); return; }
   if (Date.now()>sotpStore.expires) { showToast('OTP expired! Resend.'); sotpStore={otp:null,expires:null}; return; }
-  if (entered===sotpStore.otp) {
-    const name=document.getElementById('signupName').value.trim()||'Customer';
-    const phone=document.getElementById('signupPhone').value.trim();
-    const email=document.getElementById('signupEmail')?.value.trim()||'';
-    ['sotp1','sotp2','sotp3','sotp4','sotp5','sotp6'].forEach(id=>{document.getElementById(id).value='';});
-    document.getElementById('otpSignupSection').style.display='none';
-    document.getElementById('signupBtn').textContent='Send OTP';
-    sotpStore={otp:null,expires:null};
-    loginSuccess(name, phone, email);
-  } else if (entered.length===6) { showToast('Incorrect OTP. Try again!'); }
+  
+  if (entered.length === 6) {
+    const btn = document.getElementById('signupBtn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Registering...';
+    btn.disabled = true;
+
+    setTimeout(() => {
+      if (entered === sotpStore.otp) {
+        const name  = document.getElementById('signupName').value.trim()||'Customer';
+        const phone = document.getElementById('signupPhone').value.trim();
+        const email = document.getElementById('signupEmail')?.value.trim()||'';
+        ['sotp1','sotp2','sotp3','sotp4','sotp5','sotp6'].forEach(id=>{document.getElementById(id).value='';});
+        document.getElementById('otpSignupSection').style.display='none';
+        btn.textContent = 'Send OTP';
+        btn.disabled = false;
+        sotpStore = {otp:null, expires:null};
+        loginSuccess(name, phone, email);
+      } else {
+        btn.textContent = originalText;
+        btn.disabled = false;
+        showToast('Access Denied: Incorrect OTP ❌');
+      }
+    }, 1500);
+  }
 }
 
 function loginSuccess(name, phone, email='') {
@@ -778,8 +831,18 @@ Annai's Kitchen Order System`;
   orders.push(orderData);
   localStorage.setItem('ak_orders', JSON.stringify(orders));
 
-  // Show order ID in success message
-  document.getElementById('orderSuccessId').textContent = 'Order ID: ' + orderId;
+  // Show scanning effect on order modal
+  const modalBox = document.querySelector('#orderModal .modal-box');
+  const scanner = document.createElement('div');
+  scanner.className = 'scanner-overlay';
+  modalBox.appendChild(scanner);
+
+  setTimeout(() => {
+    scanner.remove();
+    // Show order ID in success message
+    document.getElementById('orderSuccessId').textContent = 'Order ID: ' + orderId;
+    setOrderStep(3);
+  }, 2000);
 
   // WhatsApp — direct wa.me link (works reliably on mobile & desktop)
   window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(orderText)}`,'_blank');
