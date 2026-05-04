@@ -98,8 +98,19 @@ function getCartTotal() {
   }, 0);
 }
 
-function openCart()  { renderCart(); document.getElementById('cartDrawer').classList.add('open'); document.body.style.overflow='hidden'; }
-function closeCart() { document.getElementById('cartDrawer').classList.remove('open'); document.body.style.overflow=''; }
+function openCart()  { 
+  renderCart(); 
+  document.getElementById('cartDrawer').classList.add('open'); 
+  document.body.style.overflow='hidden'; 
+  // Add a small delay for the animation
+}
+function closeCart() { 
+  document.getElementById('cartDrawer').classList.remove('open'); 
+  // Only restore overflow if no other modal is open
+  if (!document.querySelector('.modal-overlay.open')) {
+    document.body.style.overflow=''; 
+  }
+}
 
 function renderCart() {
   const cart=getCart();
@@ -228,6 +239,7 @@ function saveProducts(prods) {
 const SECTIONS = ['foods', 'jewelry', 'sarees', 'contact', 'admin'];
 
 function showSection(id) {
+  closeCart(); // Close cart when navigating
   SECTIONS.forEach(s => {
     document.getElementById('sec-' + s)?.classList.remove('active');
     document.querySelector(`.tab-btn[data-section="${s}"]`)?.classList.remove('active');
@@ -327,9 +339,9 @@ function renderGrid(gridId, prods) {
     </div>
   `).join('');
 
-  // Attach click — now adds to cart and opens it immediately
+  // Attach click — now adds to cart with a toast, but stays on page
   grid.querySelectorAll('.btn-order-now').forEach(btn => {
-    btn.addEventListener('click', () => addToCart(parseInt(btn.dataset.productId), true));
+    btn.addEventListener('click', () => addToCart(parseInt(btn.dataset.productId), false));
   });
 }
 
@@ -362,8 +374,17 @@ function showToast(msg, duration = 2800) {
 // ──────────────────────────────────────────────
 // MODAL HELPERS
 // ──────────────────────────────────────────────
-function openModal(id)  { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openModal(id)  { 
+  document.getElementById(id).classList.add('open'); 
+  document.body.style.overflow='hidden';
+}
+function closeModal(id) { 
+  document.getElementById(id).classList.remove('open'); 
+  // Only restore overflow if cart drawer is not open
+  if (!document.getElementById('cartDrawer').classList.contains('open')) {
+    document.body.style.overflow=''; 
+  }
+}
 
 // Close modal on overlay click
 document.addEventListener('click', e => {
