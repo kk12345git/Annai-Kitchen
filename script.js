@@ -14,6 +14,10 @@ const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
 const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
 const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
 
+// ── Formspree Configuration (Automatic Emails) ──
+// Get your ID from formspree.io
+const FORMSPREE_ID = 'YOUR_FORMSPREE_ID'; 
+
 // ── Google Login Configuration ──
 const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
@@ -790,6 +794,11 @@ Annai's Kitchen Order System`;
     }
   }
 
+  // Send to Formspree (New Automatic Method)
+  if (FORMSPREE_ID && FORMSPREE_ID !== 'YOUR_FORMSPREE_ID') {
+    sendToFormspree(orderText, 'New Order');
+  }
+
   // Send WhatsApp confirmation to customer (optional, can be disabled if too many tabs)
   // sendCustomerWhatsAppNotification(customer, phone1, orderId, cart, totalNum);
 
@@ -813,6 +822,22 @@ function sendAdminEmailNotification(customer, orderId, cart, total) {
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
     .then(() => console.log('Admin notification email sent'))
     .catch(err => console.error('Admin email failed:', err));
+}
+
+// Global Formspree Sender
+function sendToFormspree(message, subject) {
+  fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      _subject: `${subject} — Annai's Kitchen`,
+      message: message
+    })
+  })
+  .then(response => {
+    if (response.ok) console.log('Formspree message sent successfully');
+  })
+  .catch(error => console.error('Formspree error:', error));
 }
 
 // Send order confirmation email to customer
@@ -882,9 +907,17 @@ function sendEnquiry(method) {
     const text = encodeURIComponent(`Hi Annai's Kitchen! 👋\n\nName: ${name}\nPhone: ${phone}\n\nOrder: ${msg}`);
     window.open(`https://wa.me/${ADMIN_WA}?text=${text}`, '_blank');
   } else {
-    const subject = encodeURIComponent(`Order Enquiry from ${name}`);
-    const body    = encodeURIComponent(`Hi Annai's Kitchen,\n\nName: ${name}\nPhone: ${phone}\n\nOrder Details:\n${msg}\n\nThank you!`);
-    window.open(`mailto:${ADMIN_EMAIL}?subject=${subject}&body=${body}`, '_blank');
+    // Try Formspree first if ID exists
+    if (FORMSPREE_ID && FORMSPREE_ID !== 'YOUR_FORMSPREE_ID') {
+      const fullMsg = `Enquiry from ${name}\nPhone: ${phone}\n\nMessage:\n${msg}`;
+      sendToFormspree(fullMsg, 'New Enquiry');
+      showToast('Enquiry sent via Email! 📧');
+    } else {
+      // Fallback to mailto
+      const subject = encodeURIComponent(`Order Enquiry from ${name}`);
+      const body    = encodeURIComponent(`Hi Annai's Kitchen,\n\nName: ${name}\nPhone: ${phone}\n\nOrder Details:\n${msg}\n\nThank you!`);
+      window.open(`mailto:${ADMIN_EMAIL}?subject=${subject}&body=${body}`, '_blank');
+    }
   }
 }
 
