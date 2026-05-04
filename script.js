@@ -9,16 +9,16 @@ const ADMIN_WA    = '919944124864';
 // ── EmailJS — set EMAILJS_ENABLED=true after creating account at emailjs.com ──
 // Steps: 1) emailjs.com free account  2) Add Gmail service  3) Create template
 // Template variables needed: {{to_email}}, {{otp_code}}, {{customer_name}}
-const EMAILJS_ENABLED     = false;           // ← flip to true after setup
-const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
-const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
-const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
+const EMAILJS_ENABLED     = false;           // ← Set to true after setup at emailjs.com
+const EMAILJS_SERVICE_ID  = 'service_xxxxxxx'; // Replace with your Service ID
+const EMAILJS_TEMPLATE_ID = 'template_xxxxxxx'; // Replace with your Template ID
+const EMAILJS_PUBLIC_KEY  = 'your_public_key'; // Replace with your Public Key
 
 // ── Formspree Configuration (Automatic Emails) ──
-// Get your ID from formspree.io
 const FORMSPREE_ID = 'xdabegrq'; 
 
 // ── Google Login Configuration ──
+// Get your Client ID from https://console.cloud.google.com
 const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
 // ── Intersection Observer for Scroll Reveals ──
@@ -350,12 +350,12 @@ function filterFood(cat, btn) {
 // TOAST
 // ──────────────────────────────────────────────
 let toastTimer;
-function showToast(msg) {
+function showToast(msg, duration = 2800) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
 }
 
 // ──────────────────────────────────────────────
@@ -384,14 +384,20 @@ function switchAuthTab(tab) {
 // ── Google Identity Services Integration ──
 function initGoogleAuth() {
   if (typeof google === 'undefined') return;
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: handleCredentialResponse,
-    auto_select: false,
-    cancel_on_tap_outside: true
-  });
-  // Optionally show One Tap prompt
-  google.accounts.id.prompt(); 
+  try {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleCredentialResponse,
+      auto_select: false,
+      cancel_on_tap_outside: true
+    });
+    // Only prompt if ID is valid
+    if (!GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE_CLIENT_ID')) {
+      google.accounts.id.prompt(); 
+    }
+  } catch (e) {
+    console.warn('Google Auth Init skipped or failed:', e);
+  }
 }
 
 function googleLogin() {
@@ -399,6 +405,15 @@ function googleLogin() {
     showToast('Google Sign-In is currently unavailable.');
     return;
   }
+  
+  if (GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE_CLIENT_ID')) {
+    showToast('🔑 [Test Mode] Google Login Simulated...');
+    setTimeout(() => {
+      loginSuccess('Vendhan C', 'via Google', 'varaganfinanceinfo@gmail.com');
+    }, 1500);
+    return;
+  }
+  
   google.accounts.id.prompt(); // Show the selector
 }
 
@@ -457,7 +472,7 @@ function requestOtp() {
     }
   }, 1000);
 
-  if (EMAILJS_ENABLED && email) {
+  if (EMAILJS_ENABLED && email && EMAILJS_PUBLIC_KEY !== 'your_public_key') {
     btn.textContent='Sending...';
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {to_email:email, otp_code:otp, customer_name:'Customer'})
       .then(()=>{ document.getElementById('otpLoginSection').style.display='block'; btn.textContent='OTP Sent'; showToast('OTP sent to your email! 📧'); })
@@ -465,8 +480,9 @@ function requestOtp() {
   } else {
     document.getElementById('otpLoginSection').style.display='block';
     btn.textContent='OTP Sent';
-    console.log('Annai Kitchen Test OTP:', otp); // For owner testing
-    showToast(`OTP sent to your provided contact! 📧`);
+    console.log('Annai Kitchen Test OTP:', otp); 
+    // PROFESSIONAL SIMULATION: Show the OTP clearly to the user
+    showToast(`🔑 [TEST MODE] Your OTP is: ${otp}`, 8000); 
   }
 }
 
@@ -524,7 +540,7 @@ function requestSignupOtp() {
   const otp=generateOtp();
   sotpStore={otp,expires:Date.now()+5*60*1000};
   const btn=document.getElementById('signupBtn');
-  if (EMAILJS_ENABLED && email) {
+  if (EMAILJS_ENABLED && email && EMAILJS_PUBLIC_KEY !== 'your_public_key') {
     btn.textContent='Sending...'; btn.disabled=true;
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,{to_email:email,otp_code:otp,customer_name:document.getElementById('signupName').value.trim()||'Customer'})
       .then(()=>{document.getElementById('otpSignupSection').style.display='block';btn.textContent='Resend OTP';btn.disabled=false;showToast('OTP sent to your email! 📧');})
@@ -532,8 +548,8 @@ function requestSignupOtp() {
   } else {
     document.getElementById('otpSignupSection').style.display='block';
     btn.textContent='Resend OTP';
-    console.log('Annai Kitchen Test OTP:', otp); // For owner testing
-    showToast(`OTP sent to your provided contact! 📧`);
+    console.log('Annai Kitchen Test OTP:', otp);
+    showToast(`🔑 [TEST MODE] Your OTP is: ${otp}`, 8000);
   }
 }
 
