@@ -698,7 +698,7 @@ Annai's Kitchen Order System`;
   // Send WhatsApp confirmation to customer
   sendCustomerWhatsAppNotification(customer, phone1, orderId, cart, getCartTotal());
 
-  // Gmail compose URL — opens Gmail in browser tab (not mail app)
+// Gmail compose URL — opens Gmail in browser tab (not mail app)
   setTimeout(()=>{
     const sub  = encodeURIComponent(`New Order #${orderId} from ${customer} — Annai's Kitchen`);
     const body = encodeURIComponent(orderText);
@@ -708,6 +708,7 @@ Annai's Kitchen Order System`;
   saveCart([]); updateCartBadge();
   setOrderStep(3);
   showToast(`Order placed successfully! Order ID: ${orderId} ✅`);
+}
 
 // Send order confirmation email to customer
 function sendCustomerOrderConfirmation(customer, email, orderId, cart, total) {
@@ -717,7 +718,7 @@ function sendCustomerOrderConfirmation(customer, email, orderId, cart, total) {
     return `• ${i.name} × ${i.qty} = ${sub}`;
   }).join('\n');
 
-  const templateParams = {
+const templateParams = {
     to_email: email,
     customer_name: customer,
     order_id: orderId,
@@ -754,7 +755,7 @@ We'll contact you shortly on ${phone} for delivery.
 
   // Clean phone number (remove + and spaces)
   const cleanPhone = phone.replace(/[\s\+]/g, '');
-  
+
   // Try to open WhatsApp with customer's number
   setTimeout(() => {
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
