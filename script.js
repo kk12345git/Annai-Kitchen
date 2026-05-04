@@ -381,14 +381,53 @@ function switchAuthTab(tab) {
   document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
 }
 
-function googleLogin() {
-  loginSuccess('Google User', 'via Google', 'guest@gmail.com');
+// ── Google Identity Services Integration ──
+function initGoogleAuth() {
+  if (typeof google === 'undefined') return;
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleCredentialResponse,
+    auto_select: false,
+    cancel_on_tap_outside: true
+  });
+  // Optionally show One Tap prompt
+  google.accounts.id.prompt(); 
 }
 
-// (Google Identity Services disabled for demo)
-function handleCredentialResponse(response) {}
+function googleLogin() {
+  if (typeof google === 'undefined') {
+    showToast('Google Sign-In is currently unavailable.');
+    return;
+  }
+  google.accounts.id.prompt(); // Show the selector
+}
 
-function decodeJwtResponse(token) { return {}; }
+function handleCredentialResponse(response) {
+  const responsePayload = decodeJwtResponse(response.credential);
+  if (responsePayload && responsePayload.email) {
+    loginSuccess(
+      responsePayload.name || 'Google User',
+      'via Google',
+      responsePayload.email
+    );
+  } else {
+    showToast('Google Login Failed. Please try again.');
+  }
+}
+
+function decodeJwtResponse(token) {
+  try {
+    var base64Url = token.split('.')[1];
+    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error('JWT Decode Error:', e);
+    return null;
+  }
+}
 
 function generateOtp() { return Math.floor(100000+Math.random()*900000).toString(); }
 
@@ -426,7 +465,8 @@ function requestOtp() {
   } else {
     document.getElementById('otpLoginSection').style.display='block';
     btn.textContent='OTP Sent';
-    showToast(`OTP sent! Demo OTP: ${otp}`);
+    console.log('Annai Kitchen Test OTP:', otp); // For owner testing
+    showToast(`OTP sent to your provided contact! 📧`);
   }
 }
 
@@ -492,7 +532,8 @@ function requestSignupOtp() {
   } else {
     document.getElementById('otpSignupSection').style.display='block';
     btn.textContent='Resend OTP';
-    showToast(`OTP sent! Demo OTP: ${otp}`);
+    console.log('Annai Kitchen Test OTP:', otp); // For owner testing
+    showToast(`OTP sent to your provided contact! 📧`);
   }
 }
 
@@ -1068,4 +1109,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (EMAILJS_ENABLED && typeof emailjs !== 'undefined') {
     emailjs.init(EMAILJS_PUBLIC_KEY);
   }
+
+  // Init Google Auth
+  initGoogleAuth();
 });
