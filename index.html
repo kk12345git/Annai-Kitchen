@@ -7,6 +7,7 @@
   <meta name="description" content="Authentic homemade foods, handcrafted jewelry & handwoven sarees from Tamil Nadu. Order fresh pickles, malts, spices and more from Annai's Kitchen." />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -39,14 +40,15 @@
       <div id="otpLoginSection" style="display:none;">
         <label class="field-label">Enter OTP <span>*</span></label>
         <div class="otp-row">
-          <input class="otp-box" maxlength="1" id="otp1" oninput="moveOtp(this,'otp2')" />
-          <input class="otp-box" maxlength="1" id="otp2" oninput="moveOtp(this,'otp3')" />
-          <input class="otp-box" maxlength="1" id="otp3" oninput="moveOtp(this,'otp4')" />
-          <input class="otp-box" maxlength="1" id="otp4" oninput="moveOtp(this,'otp5')" />
-          <input class="otp-box" maxlength="1" id="otp5" oninput="moveOtp(this,'otp6')" />
-          <input class="otp-box" maxlength="1" id="otp6" oninput="verifyOtp()" />
+          <input class="otp-box" maxlength="1" id="otp1" oninput="moveOtp(this,'otp2')" type="tel" />
+          <input class="otp-box" maxlength="1" id="otp2" oninput="moveOtp(this,'otp3')" type="tel" />
+          <input class="otp-box" maxlength="1" id="otp3" oninput="moveOtp(this,'otp4')" type="tel" />
+          <input class="otp-box" maxlength="1" id="otp4" oninput="moveOtp(this,'otp5')" type="tel" />
+          <input class="otp-box" maxlength="1" id="otp5" oninput="moveOtp(this,'otp6')" type="tel" />
+          <input class="otp-box" maxlength="1" id="otp6" oninput="verifyOtp()" type="tel" />
         </div>
-        <p style="font-size:12px;color:#888;text-align:center;margin-bottom:14px;">OTP sent — check your email or toast notification</p>
+        <p style="font-size:12px;color:#888;text-align:center;margin-bottom:8px;">OTP sent to your email/phone</p>
+        <div id="otpTimer" style="font-size:11px;color:var(--rust);text-align:center;margin-bottom:14px;font-weight:600;"></div>
       </div>
       <button class="btn-primary" id="loginBtn" onclick="requestOtp()">Send OTP</button>
     </div>
@@ -224,6 +226,23 @@
      FOODS SECTION
 ══════════════════════════════════════════ -->
 <main>
+<!-- ══════════════════════════════════════════
+     SEARCH & SORT BAR
+══════════════════════════════════════════ -->
+<div class="search-filter-bar">
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="globalSearch" placeholder="Search for foods, jewelry, sarees..." oninput="handleSearch(this.value)" />
+  </div>
+  <div class="sort-box">
+    <select id="priceSort" onchange="handleSort(this.value)">
+      <option value="default">Sort by: Featured</option>
+      <option value="price-low">Price: Low to High</option>
+      <option value="price-high">Price: High to Low</option>
+    </select>
+  </div>
+</div>
+
 <section class="section active" id="sec-foods" aria-label="Foods">
   <div class="sec-header">
     <div class="sec-label">Homemade Goodness</div>

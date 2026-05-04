@@ -14,6 +14,9 @@ const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
 const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
 const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
 
+// ── Google Login Configuration ──
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+
 let isAdmin     = false;
 let currentUser = null; // { name, phone, email, deviceId }
 let newImgData  = null;
@@ -37,7 +40,6 @@ function getCart()      { const s=localStorage.getItem('ak_cart'); return s?JSON
 function saveCart(c)    { localStorage.setItem('ak_cart',JSON.stringify(c)); }
 
 function addToCart(productId) {
-  if (!currentUser) { showToast('Please login first! 🔑'); openModal('authModal'); return; }
   const prod = getProducts().find(p=>p.id===productId);
   if (!prod) return;
   const cart = getCart();
@@ -101,8 +103,13 @@ function renderCart() {
 function checkoutCart() {
   const cart=getCart();
   if(cart.length===0){ showToast('Cart is empty!'); return; }
+  if (!currentUser) { 
+    showToast('Please login to continue checkout! 🔑'); 
+    closeCart();
+    openModal('authModal'); 
+    return; 
+  }
   closeCart();
-  document.getElementById('o-qty').value=1;
   document.getElementById('o-phone1').value=(currentUser.phone&&currentUser.phone!=='via Google')?currentUser.phone:'';
   document.getElementById('o-phone2').value='';
   document.getElementById('o-address').value='';
@@ -170,7 +177,57 @@ function showSection(id) {
   document.querySelector(`.tab-btn[data-section="${id}"]`)?.classList.add('active');
   document.getElementById('bnav-' + id)?.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  
+  // Show/Hide search bar based on section
+  const searchBar = document.querySelector('.search-filter-bar');
+  if (searchBar) {
+    searchBar.style.display = ['foods', 'jewelry', 'sarees'].includes(id) ? 'flex' : 'none';
+  }
+
   if (id === 'admin') renderAdminList();
+}
+
+// ── Search, Sort & Filter State ──
+let searchQuery = '';
+let currentSort  = 'default';
+let foodCategory = 'all';
+
+function handleSearch(val) {
+  searchQuery = val.toLowerCase().trim();
+  renderProducts();
+}
+
+function handleSort(val) {
+  currentSort = val;
+  renderProducts();
+}
+
+function filterAndSort(prods, cat = 'all') {
+  let filtered = prods;
+  if (cat !== 'all') {
+    filtered = filtered.filter(p => p.cat === cat);
+  }
+  if (searchQuery) {
+    filtered = filtered.filter(p => 
+      p.name.toLowerCase().includes(searchQuery) || 
+      (p.nameTa && p.nameTa.toLowerCase().includes(searchQuery))
+    );
+  }
+  
+  if (currentSort === 'price-low') {
+    filtered.sort((a,b) => {
+      const pa = parseFloat(a.price.replace('₹','')) || 999999;
+      const pb = parseFloat(b.price.replace('₹','')) || 999999;
+      return pa - pb;
+    });
+  } else if (currentSort === 'price-high') {
+    filtered.sort((a,b) => {
+      const pa = parseFloat(a.price.replace('₹','')) || 0;
+      const pb = parseFloat(b.price.replace('₹','')) || 0;
+      return pb - pa;
+    });
+  }
+  return filtered;
 }
 
 // ──────────────────────────────────────────────
@@ -178,9 +235,9 @@ function showSection(id) {
 // ──────────────────────────────────────────────
 function renderProducts() {
   const prods = getProducts();
-  renderGrid('foods-grid',   prods.filter(p => ['pickle','drink','spice','other'].includes(p.cat)));
-  renderGrid('jewelry-grid', prods.filter(p => p.cat === 'jewelry'));
-  renderGrid('sarees-grid',  prods.filter(p => p.cat === 'saree'));
+  renderGrid('foods-grid',   filterAndSort(prods.filter(p => ['pickle','drink','spice','other'].includes(p.cat)), foodCategory));
+  renderGrid('jewelry-grid', filterAndSort(prods.filter(p => p.cat === 'jewelry')));
+  renderGrid('sarees-grid',  filterAndSort(prods.filter(p => p.cat === 'saree')));
 }
 
 function renderGrid(gridId, prods) {
@@ -217,9 +274,8 @@ function renderGrid(gridId, prods) {
 function filterFood(cat, btn) {
   document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
-  const prods = getProducts().filter(p => ['pickle','drink','spice','other'].includes(p.cat));
-  const filtered = cat === 'all' ? prods : prods.filter(p => p.cat === cat);
-  renderGrid('foods-grid', filtered);
+  foodCategory = cat;
+  renderProducts();
 }
 
 // ──────────────────────────────────────────────
@@ -258,7 +314,23 @@ function switchAuthTab(tab) {
 }
 
 function googleLogin() {
-  loginSuccess('Google User', 'via Google');
+  if (typeof google === 'undefined') { showToast('Google Login loading...'); return; }
+  google.accounts.id.prompt(); // Shows the "One Tap" selection with all emails on device
+}
+
+// Callback after Google login selection
+function handleCredentialResponse(response) {
+  const payload = decodeJwtResponse(response.credential);
+  loginSuccess(payload.name, 'via Google', payload.email);
+}
+
+function decodeJwtResponse(token) {
+  let base64Url = token.split('.')[1];
+  let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(''));
+  return JSON.parse(jsonPayload);
 }
 
 function generateOtp() { return Math.floor(100000+Math.random()*900000).toString(); }
@@ -267,17 +339,36 @@ function requestOtp() {
   const email = document.getElementById('loginEmail')?.value.trim()||'';
   const phone = document.getElementById('loginPhone').value.trim();
   if (!phone) { showToast('Enter your phone number!'); return; }
+  
+  // Start 30s timer
+  let timeLeft = 30;
+  const timerEl = document.getElementById('otpTimer');
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  
   const otp = generateOtp();
   otpStore = { otp, expires: Date.now()+5*60*1000 };
-  const btn = document.getElementById('loginBtn');
+  
+  const timerId = setInterval(() => {
+    if (timeLeft <= 0) {
+      clearInterval(timerId);
+      timerEl.textContent = '';
+      btn.disabled = false;
+      btn.textContent = 'Resend OTP';
+    } else {
+      timerEl.textContent = `Resend available in ${timeLeft}s`;
+      timeLeft--;
+    }
+  }, 1000);
+
   if (EMAILJS_ENABLED && email) {
-    btn.textContent='Sending...'; btn.disabled=true;
+    btn.textContent='Sending...';
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {to_email:email, otp_code:otp, customer_name:'Customer'})
-      .then(()=>{ document.getElementById('otpLoginSection').style.display='block'; btn.textContent='Resend OTP'; btn.disabled=false; showToast('OTP sent to your email! 📧'); })
-      .catch(()=>{ btn.textContent='Send OTP'; btn.disabled=false; showToast('Failed to send OTP!'); otpStore={otp:null,expires:null}; });
+      .then(()=>{ document.getElementById('otpLoginSection').style.display='block'; btn.textContent='OTP Sent'; showToast('OTP sent to your email! 📧'); })
+      .catch(()=>{ clearInterval(timerId); btn.textContent='Send OTP'; btn.disabled=false; showToast('Failed to send OTP!'); otpStore={otp:null,expires:null}; });
   } else {
     document.getElementById('otpLoginSection').style.display='block';
-    btn.textContent='Resend OTP';
+    btn.textContent='OTP Sent';
     showToast(`OTP sent! Demo OTP: ${otp}`);
   }
 }
@@ -592,8 +683,6 @@ function startOrder(productName) {
     openModal('authModal');
     return;
   }
-  document.getElementById('o-product').value = productName;
-  document.getElementById('o-qty').value     = 1;
   document.getElementById('o-phone1').value  = (currentUser.phone !== 'via Google') ? currentUser.phone : '';
   document.getElementById('o-phone2').value  = '';
   document.getElementById('o-address').value = '';
@@ -650,6 +739,12 @@ function placeOrder() {
     return `  • ${i.name} × ${i.qty} = ${sub}`;
   }).join('\n');
 
+  const totalNum = getCartTotal();
+  const hasEnq = cart.some(c=>c.price==='Enquire');
+  const totalDisplay = (totalNum > 0) 
+    ? `₹${totalNum}${hasEnq ? ' + Enquire items' : ''}` 
+    : 'Enquire for pricing';
+
   const orderText =
 `🛒 NEW ORDER — Annai's Kitchen
 
@@ -663,7 +758,7 @@ Order ID : ${orderId}
 🧺 Items:
 ${itemLines}
 
-💰 Total: ₹${getCartTotal()}${cart.some(c=>c.price==='Enquire')?' + Enquire items':''}
+💰 Total: ${totalDisplay}
 
 ---
 Annai's Kitchen Order System`;
@@ -690,24 +785,39 @@ Annai's Kitchen Order System`;
   // WhatsApp — direct wa.me link (works reliably on mobile & desktop)
   window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(orderText)}`,'_blank');
 
-  // Send customer confirmation via EmailJS if enabled
-  if (EMAILJS_ENABLED && currentUser.email && typeof emailjs !== 'undefined') {
-    sendCustomerOrderConfirmation(customer, currentUser.email, orderId, cart, getCartTotal());
+  // Send Admin & Customer confirmation via EmailJS if enabled
+  if (EMAILJS_ENABLED && typeof emailjs !== 'undefined') {
+    // To Admin
+    sendAdminEmailNotification(customer, orderId, cart, totalNum);
+    // To Customer
+    if (currentUser.email) {
+      sendCustomerOrderConfirmation(customer, currentUser.email, orderId, cart, totalNum);
+    }
   }
 
-  // Send WhatsApp confirmation to customer
-  sendCustomerWhatsAppNotification(customer, phone1, orderId, cart, getCartTotal());
-
-// Gmail compose URL — opens Gmail in browser tab (not mail app)
-  setTimeout(()=>{
-    const sub  = encodeURIComponent(`New Order #${orderId} from ${customer} — Annai's Kitchen`);
-    const body = encodeURIComponent(orderText);
-    window.open(`https://mail.google.com/mail/?view=cm&to=${ADMIN_EMAIL}&su=${sub}&body=${body}`,'_blank');
-  }, 600);
+  // Send WhatsApp confirmation to customer (optional, can be disabled if too many tabs)
+  // sendCustomerWhatsAppNotification(customer, phone1, orderId, cart, totalNum);
 
   saveCart([]); updateCartBadge();
   setOrderStep(3);
-  showToast(`Order placed successfully! Order ID: ${orderId} ✅`);
+  showToast(`Order placed! WhatsApp opened for Admin. ✅`);
+}
+
+// Send background email to Admin via EmailJS
+function sendAdminEmailNotification(customer, orderId, cart, total) {
+  const itemsText = cart.map(i => `${i.name} × ${i.qty}`).join('\n');
+  const templateParams = {
+    to_email: ADMIN_EMAIL, // Admin's email
+    customer_name: customer,
+    order_id: orderId,
+    order_items: itemsText,
+    order_total: `₹${total}`,
+    message: `New order from ${customer}. Check admin panel for details.`
+  };
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
+    .then(() => console.log('Admin notification email sent'))
+    .catch(err => console.error('Admin email failed:', err));
 }
 
 // Send order confirmation email to customer
@@ -807,5 +917,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // Init EmailJS if enabled
   if (EMAILJS_ENABLED && typeof emailjs !== 'undefined') {
     emailjs.init(EMAILJS_PUBLIC_KEY);
+  }
+
+  // Init Google Login
+  if (typeof google !== 'undefined') {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleCredentialResponse
+    });
   }
 });
