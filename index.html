@@ -15,7 +15,7 @@
 <!-- ══════════════════════════════════════════
      AUTH MODAL
 ══════════════════════════════════════════ -->
-<div class="modal-overlay" id="authModal">
+<div class="modal-overlay" id="authModal" role="dialog" aria-modal="true">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('authModal')">✕</button>
     <div class="modal-title">Welcome 👋</div>
@@ -45,7 +45,7 @@
           <input class="otp-box" maxlength="1" id="otp3" oninput="moveOtp(this,'otp4')" type="tel" />
           <input class="otp-box" maxlength="1" id="otp4" oninput="moveOtp(this,'otp5')" type="tel" />
           <input class="otp-box" maxlength="1" id="otp5" oninput="moveOtp(this,'otp6')" type="tel" />
-          <input class="otp-box" maxlength="1" id="otp6" oninput="verifyOtp()" type="tel" />
+          <input class="otp-box" maxlength="1" id="otp6" oninput="moveOtp(this);verifyOtp()" type="tel" />
         </div>
         <p style="font-size:12px;color:#888;text-align:center;margin-bottom:8px;">OTP sent to your email/phone</p>
         <div id="otpTimer" style="font-size:11px;color:var(--rust);text-align:center;margin-bottom:14px;font-weight:600;"></div>
@@ -73,7 +73,7 @@
           <input class="otp-box" maxlength="1" id="sotp3" oninput="moveOtp(this,'sotp4')" />
           <input class="otp-box" maxlength="1" id="sotp4" oninput="moveOtp(this,'sotp5')" />
           <input class="otp-box" maxlength="1" id="sotp5" oninput="moveOtp(this,'sotp6')" />
-          <input class="otp-box" maxlength="1" id="sotp6" oninput="verifySignupOtp()" />
+          <input class="otp-box" maxlength="1" id="sotp6" oninput="moveOtp(this);verifySignupOtp()" />
         </div>
         <p style="font-size:12px;color:#888;text-align:center;margin-bottom:14px;">OTP sent — check your email or toast notification</p>
       </div>
@@ -83,7 +83,7 @@
 </div>
 
 <!-- ORDER MODAL -->
-<div class="modal-overlay" id="orderModal">
+<div class="modal-overlay" id="orderModal" role="dialog" aria-modal="true">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('orderModal')">✕</button>
     <div class="modal-title">Place Order 🛒</div>
@@ -137,7 +137,7 @@
 <!-- ══════════════════════════════════════════
      ADMIN LOGIN MODAL
 ══════════════════════════════════════════ -->
-<div class="modal-overlay" id="adminLoginModal">
+<div class="modal-overlay" id="adminLoginModal" role="dialog" aria-modal="true">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('adminLoginModal')">✕</button>
     <div class="modal-title">Admin Login 🔐</div>
@@ -153,7 +153,7 @@
 <!-- ══════════════════════════════════════════
      EDIT PRODUCT MODAL
 ══════════════════════════════════════════ -->
-<div class="modal-overlay" id="editProductModal">
+<div class="modal-overlay" id="editProductModal" role="dialog" aria-modal="true">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('editProductModal')">✕</button>
     <div class="modal-title">Edit Product ✏️</div>

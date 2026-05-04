@@ -82,11 +82,19 @@ function updateCartQty(id,delta) {
 function updateCartBadge() {
   const total=getCart().reduce((s,c)=>s+c.qty,0);
   const b=document.getElementById('cartBadge');
+  const btn=document.querySelector('.cart-nav-btn');
   if(b){ b.textContent=total; b.style.display=total>0?'flex':'none'; }
+  if(total > 0 && btn) {
+    btn.classList.add('pulse');
+    setTimeout(() => btn.classList.remove('pulse'), 400);
+  }
 }
 
 function getCartTotal() {
-  return getCart().reduce((s,item)=>{ const n=parseFloat(item.price.replace('₹','')); return s+(isNaN(n)?0:n*item.qty); },0);
+  return getCart().reduce((s,item)=>{ 
+    const n = parseFloat(String(item.price).replace(/[^\d.]/g, '')); 
+    return s + (isNaN(n) ? 0 : n * item.qty); 
+  }, 0);
 }
 
 function openCart()  { renderCart(); document.getElementById('cartDrawer').classList.add('open'); document.body.style.overflow='hidden'; }
@@ -105,11 +113,11 @@ function renderCart() {
   const hasEnq=cart.some(c=>c.price==='Enquire');
   const numTot=getCartTotal();
   body.innerHTML=cart.map(item=>{
-    const n=parseFloat(item.price.replace('₹',''));
+    const n = parseFloat(String(item.price).replace(/[^\d.]/g, ''));
     const sub=isNaN(n)?'Enquire':'₹'+(n*item.qty);
     return `<div class="cart-item">
       <div class="cart-item-thumb">${item.img?`<img src="${item.img}" alt=""/>`:`<span>${item.emoji}</span>`}</div>
-      <div class="cart-item-info"><div class="cart-item-name">${escapeHtml(item.name)}</div><div class="cart-item-price">${item.price} × ${item.qty} = <b>${sub}</b></div></div>
+      <div class="cart-item-info"><div class="cart-item-name">${escapeHtml(item.name)}</div><div class="cart-item-price">${escapeHtml(item.price)} × ${item.qty} = <b>${sub}</b></div></div>
       <div class="cart-item-controls">
         <button class="qty-btn" onclick="updateCartQty(${item.id},-1)">−</button>
         <span class="qty-val">${item.qty}</span>
@@ -428,6 +436,14 @@ function moveOtp(el, nextId) {
     nextEl?.focus();
     nextEl?.classList.add('glow-pulse');
     setTimeout(() => nextEl?.classList.remove('glow-pulse'), 500);
+  } else if (!el.value) {
+    // If deleted, move focus back if possible
+    const prevMap = {
+      'otp2':'otp1','otp3':'otp2','otp4':'otp3','otp5':'otp4','otp6':'otp5',
+      'sotp2':'sotp1','sotp3':'sotp2','sotp4':'sotp3','sotp5':'sotp4','sotp6':'sotp5'
+    };
+    const prevId = prevMap[el.id];
+    if (prevId) document.getElementById(prevId)?.focus();
   }
 }
 
@@ -663,8 +679,8 @@ function renderAdminOrders() {
   const ordersList = document.getElementById('adminOrdersList');
   if (!ordersList) return;
   
-  // Load orders from localStorage
-  const savedOrders = JSON.parse(localStorage.getItem('ak_orders')||'[]');
+  // Use the global orders array instead of re-parsing
+  const savedOrders = orders;
   
   if (savedOrders.length === 0) {
     ordersList.innerHTML = '<p style="text-align:center;color:#888;padding:20px 0;">No orders yet.</p>';
@@ -824,7 +840,7 @@ function placeOrder() {
   const orderId  = 'AK-' + Date.now().toString(36).toUpperCase();
 
   const itemLines = cart.map(i=>{
-    const n=parseFloat(i.price.replace('₹',''));
+    const n = parseFloat(String(i.price).replace(/[^\d.]/g, ''));
     const sub=isNaN(n)?'Enquire':'₹'+(n*i.qty);
     return `  • ${i.name} × ${i.qty} = ${sub}`;
   }).join('\n');
@@ -909,11 +925,7 @@ Annai's Kitchen Order System`;
     sendToFormspree(orderText, 'New Order');
   }
 
-  // Send WhatsApp confirmation to customer (optional, can be disabled if too many tabs)
-  // sendCustomerWhatsAppNotification(customer, phone1, orderId, cart, totalNum);
-
   saveCart([]); updateCartBadge();
-  setOrderStep(3);
   showToast(`Order placed! WhatsApp opened for Admin. ✅`);
 }
 
