@@ -16,7 +16,7 @@ const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
 
 // ── Formspree Configuration (Automatic Emails) ──
 // Get your ID from formspree.io
-const FORMSPREE_ID = 'YOUR_FORMSPREE_ID'; 
+const FORMSPREE_ID = 'xdabegrq'; 
 
 // ── Google Login Configuration ──
 const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
