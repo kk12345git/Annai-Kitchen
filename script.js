@@ -314,24 +314,13 @@ function switchAuthTab(tab) {
 }
 
 function googleLogin() {
-  if (typeof google === 'undefined') { showToast('Google Login loading...'); return; }
-  google.accounts.id.prompt(); // Shows the "One Tap" selection with all emails on device
+  loginSuccess('Google User', 'via Google', 'guest@gmail.com');
 }
 
-// Callback after Google login selection
-function handleCredentialResponse(response) {
-  const payload = decodeJwtResponse(response.credential);
-  loginSuccess(payload.name, 'via Google', payload.email);
-}
+// (Google Identity Services disabled for demo)
+function handleCredentialResponse(response) {}
 
-function decodeJwtResponse(token) {
-  let base64Url = token.split('.')[1];
-  let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-  }).join(''));
-  return JSON.parse(jsonPayload);
-}
+function decodeJwtResponse(token) { return {}; }
 
 function generateOtp() { return Math.floor(100000+Math.random()*900000).toString(); }
 
@@ -923,13 +912,5 @@ window.addEventListener('DOMContentLoaded', () => {
   // Init EmailJS if enabled
   if (EMAILJS_ENABLED && typeof emailjs !== 'undefined') {
     emailjs.init(EMAILJS_PUBLIC_KEY);
-  }
-
-  // Init Google Login
-  if (typeof google !== 'undefined') {
-    google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: handleCredentialResponse
-    });
   }
 });
