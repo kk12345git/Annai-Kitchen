@@ -20,6 +20,7 @@ let newImgData  = null;
 let editImgData = null;
 let otpStore    = { otp:null, expires:null };
 let sotpStore   = { otp:null, expires:null };
+let orders      = JSON.parse(localStorage.getItem('ak_orders')||'[]'); // Store all orders
 
 // ── Device ID ──
 function getDeviceId() {
@@ -471,6 +472,40 @@ function renderAdminList() {
       </div>
     </div>
   `).join('');
+  
+  // Also render orders
+  renderAdminOrders();
+}
+
+// Render orders in admin panel
+function renderAdminOrders() {
+  const ordersList = document.getElementById('adminOrdersList');
+  if (!ordersList) return;
+  
+  // Load orders from localStorage
+  const savedOrders = JSON.parse(localStorage.getItem('ak_orders')||'[]');
+  
+  if (savedOrders.length === 0) {
+    ordersList.innerHTML = '<p style="text-align:center;color:#888;padding:20px 0;">No orders yet.</p>';
+    return;
+  }
+  
+  // Show latest orders first
+  const recentOrders = savedOrders.slice(-10).reverse();
+  
+  ordersList.innerHTML = recentOrders.map(order => {
+    const itemsText = order.items.map(i => `${i.name} × ${i.qty}`).join(', ');
+    const date = new Date(order.date).toLocaleString();
+    return `
+      <div class="admin-product-item" style="flex-direction:column;align-items:flex-start;">
+        <div style="font-weight:600;color:var(--rust);">Order #${order.id}</div>
+        <div style="font-size:12px;color:#666;">${date}</div>
+        <div style="margin:8px 0;">${escapeHtml(order.customer)} | ${order.phone1}</div>
+        <div style="font-size:12px;">${escapeHtml(itemsText)}</div>
+        <div style="margin-top:4px;font-weight:600;">Total: ₹${order.total}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 function openEditProduct(idx) {
@@ -607,6 +642,7 @@ function placeOrder() {
   const customer = currentUser.name;
   const deviceId = currentUser.deviceId || getDeviceId();
   const cart     = getCart();
+  const orderId  = 'AK-' + Date.now().toString(36).toUpperCase();
 
   const itemLines = cart.map(i=>{
     const n=parseFloat(i.price.replace('₹',''));
@@ -617,6 +653,7 @@ function placeOrder() {
   const orderText =
 `🛒 NEW ORDER — Annai's Kitchen
 
+Order ID : ${orderId}
 👤 Customer : ${customer}
 📱 Phone 1  : ${phone1}
 📱 Phone 2  : ${phone2||'N/A'}
@@ -631,18 +668,97 @@ ${itemLines}
 ---
 Annai's Kitchen Order System`;
 
+  // Save order to localStorage for admin tracking
+  const orderData = {
+    id: orderId,
+    customer,
+    phone1,
+    phone2,
+    address,
+    deviceId,
+    items: cart,
+    total: getCartTotal(),
+    date: new Date().toISOString(),
+    status: 'new'
+  };
+  orders.push(orderData);
+  localStorage.setItem('ak_orders', JSON.stringify(orders));
+
+  // Show order ID in success message
+  document.getElementById('orderSuccessId').textContent = 'Order ID: ' + orderId;
+
   // WhatsApp — direct wa.me link (works reliably on mobile & desktop)
   window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(orderText)}`,'_blank');
 
+  // Send customer confirmation via EmailJS if enabled
+  if (EMAILJS_ENABLED && currentUser.email && typeof emailjs !== 'undefined') {
+    sendCustomerOrderConfirmation(customer, currentUser.email, orderId, cart, getCartTotal());
+  }
+
+  // Send WhatsApp confirmation to customer
+  sendCustomerWhatsAppNotification(customer, phone1, orderId, cart, getCartTotal());
+
   // Gmail compose URL — opens Gmail in browser tab (not mail app)
   setTimeout(()=>{
-    const sub  = encodeURIComponent(`New Order from ${customer} — Annai's Kitchen`);
+    const sub  = encodeURIComponent(`New Order #${orderId} from ${customer} — Annai's Kitchen`);
     const body = encodeURIComponent(orderText);
     window.open(`https://mail.google.com/mail/?view=cm&to=${ADMIN_EMAIL}&su=${sub}&body=${body}`,'_blank');
   }, 600);
 
   saveCart([]); updateCartBadge();
   setOrderStep(3);
+  showToast(`Order placed successfully! Order ID: ${orderId} ✅`);
+
+// Send order confirmation email to customer
+function sendCustomerOrderConfirmation(customer, email, orderId, cart, total) {
+  const itemsText = cart.map(i=>{
+    const n=parseFloat(i.price.replace('₹',''));
+    const sub=isNaN(n)?'Enquire':'₹'+(n*i.qty);
+    return `• ${i.name} × ${i.qty} = ${sub}`;
+  }).join('\n');
+
+  const templateParams = {
+    to_email: email,
+    customer_name: customer,
+    order_id: orderId,
+    order_items: itemsText,
+    order_total: `₹${total}`
+  };
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
+    .then(()=>console.log('Customer confirmation email sent'))
+    .catch(err=>console.error('Email send failed:', err));
+}
+
+// Send WhatsApp order confirmation to customer
+function sendCustomerWhatsAppNotification(customer, phone, orderId, cart, total) {
+  const itemsText = cart.map(i=>{
+    const n=parseFloat(i.price.replace('₹',''));
+    const sub=isNaN(n)?'Enquire':'₹'+(n*i.qty);
+    return `• ${i.name} × ${i.qty} = ${sub}`;
+  }).join('\n');
+
+  const msg = `🎉 Order Confirmed!
+
+Order #${orderId}
+Thank you ${customer}!
+
+Your order details:
+${itemsText}
+
+Total: ₹${total}
+
+We'll contact you shortly on ${phone} for delivery.
+
+- Annai's Kitchen`;
+
+  // Clean phone number (remove + and spaces)
+  const cleanPhone = phone.replace(/[\s\+]/g, '');
+  
+  // Try to open WhatsApp with customer's number
+  setTimeout(() => {
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+  }, 1000);
 }
 
 // ──────────────────────────────────────────────

@@ -123,8 +123,9 @@
     <div class="order-step" id="ostep3" style="text-align:center;padding:20px 0;">
       <div style="font-size:3.5rem;margin-bottom:16px;">🎉</div>
       <div class="modal-title" style="margin-bottom:8px;">Order Placed!</div>
+      <div id="orderSuccessId" style="font-size:16px;color:var(--rust);font-weight:600;margin-bottom:12px;"></div>
       <p style="color:#888;font-size:14px;line-height:1.7;margin-bottom:20px;">
-        Your order has been received. Our team will contact you shortly on your phone number.
+        Your order has been received. Our team will contact you shortly on your phone number via WhatsApp and email.
       </p>
       <button class="btn-primary" onclick="closeModal('orderModal')">Continue Shopping</button>
     </div>
@@ -355,6 +356,10 @@
   <!-- Manage Products -->
   <div class="admin-section-title">📦 Manage Products</div>
   <div id="adminProductList" class="admin-product-list"></div>
+
+  <!-- Orders List -->
+  <div class="admin-section-title" style="margin-top:30px;">📋 Recent Orders</div>
+  <div id="adminOrdersList" class="admin-product-list"></div>
 </section>
 </main>
 
