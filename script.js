@@ -448,9 +448,15 @@ function showUserBadge() {
 function logoutUser() {
   currentUser = null;
   localStorage.removeItem('ak_user');
+  
+  // Clear cart on logout
+  saveCart([]);
+  updateCartBadge();
+  renderCart();
+  
   document.getElementById('heroBtns').style.display      = 'flex';
   document.getElementById('userBadgeWrap').style.display = 'none';
-  showToast('Logged out!');
+  showToast('Logged out & Cart cleared! 🧹');
 }
 
 // ──────────────────────────────────────────────
