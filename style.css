@@ -358,16 +358,35 @@ body {
   margin-bottom: 12px;
   font-weight: 500;
 }
-.product-tag {
-  display: inline-block;
-  background: rgba(255,255,255,0.05);
-  color: var(--gold);
-  font-size: 10px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 8px;
+/* Holographic Authenticity Seal */
+.holo-seal {
+  position: absolute;
+  top: 12px; left: 12px;
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, #ff00ff, #00ffff, #ff00ff);
+  background-size: 200% 200%;
+  border-radius: 50%;
+  z-index: 5;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  box-shadow: 0 0 15px rgba(0,255,255,0.3);
+  animation: holoShift 3s linear infinite;
+  opacity: 0.9;
+  cursor: help;
+}
+@keyframes holoShift {
+  0% { background-position: 0% 50%; transform: rotate(0deg); }
+  50% { background-position: 100% 50%; transform: rotate(180deg); }
+  100% { background-position: 0% 50%; transform: rotate(360deg); }
+}
+.holo-seal::after {
+  content: 'PURE';
+  position: absolute;
+  font-size: 6px;
+  font-weight: 900;
+  color: #fff;
   letter-spacing: 1px;
-  text-transform: uppercase;
 }
 
 /* Order button on product card */
@@ -1004,6 +1023,111 @@ body {
 .contact-btn { box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
 
 /* ── TOAST FIX ── */
-.toast { background: var(--gold); color: var(--obsidian); font-weight: 800; border-radius: 12px; }
+/* Smart Bundle Offer */
+.cart-bundle-offer {
+  margin-top: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), transparent);
+  border: 1px dashed var(--gold);
+  border-radius: 16px;
+  animation: fadeUp 0.5s ease both;
+}
+.bundle-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.bundle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #fff;
+}
+.bundle-row button {
+  background: var(--gold);
+  color: var(--obsidian);
+  border: none;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.bundle-row button:hover { background: #fff; transform: scale(1.05); }
+
+/* Trace Origin Button */
+.btn-trace {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: all 0.3s;
+  display: flex; align-items: center; gap: 5px;
+  width: fit-content;
+}
+.btn-trace:hover { background: var(--gold); color: var(--obsidian); box-shadow: 0 0 10px var(--gold-glow); }
+
+/* Digital Unboxing */
+.unboxing-container {
+  position: absolute;
+  inset: 0;
+  background: var(--obsidian);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  border-radius: 32px;
+  overflow: hidden;
+}
+.unbox-box {
+  font-size: 80px;
+  filter: drop-shadow(0 0 20px var(--gold-glow));
+  animation: bounce 1s infinite alternate;
+  transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.unboxing-container.open .unbox-box {
+  transform: scale(1.5) rotate(15deg);
+  opacity: 0;
+}
+.unbox-glow {
+  position: absolute;
+  width: 150px; height: 150px;
+  background: var(--gold);
+  filter: blur(60px);
+  opacity: 0;
+  transition: opacity 0.5s;
+  border-radius: 50%;
+}
+.unboxing-container.open .unbox-glow { opacity: 0.5; animation: pulseGlow 1.5s infinite; }
+.unbox-text {
+  margin-top: 24px;
+  color: var(--gold);
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-size: 12px;
+  text-align: center;
+  padding: 0 20px;
+}
+
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-20px); }
+}
+@keyframes pulseGlow {
+  0% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.4); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 0.3; }
+}
 
 

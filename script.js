@@ -119,6 +119,36 @@ function renderCart() {
   }).join('');
   const tot=document.getElementById('cartTotal');
   if(tot) tot.textContent=numTot>0?`₹${numTot}${hasEnq?' + Enquire items':''}`:'Enquire for pricing';
+  
+  renderCartBundles(cart);
+}
+
+function renderCartBundles(cart) {
+  const body = document.getElementById('cartBody');
+  if (!body || cart.length === 0) return;
+  
+  const hasPickle = cart.some(i => i.cat === 'pickle');
+  const hasSaree = cart.some(i => i.cat === 'saree');
+  
+  let suggestion = null;
+  if (hasPickle && !cart.some(i => i.id === 6)) {
+    suggestion = { id: 6, name: 'Vadangam (Side Dish)', price: '₹50', emoji: '☀️' };
+  } else if (hasSaree && !cart.some(i => i.id === 9)) {
+    suggestion = { id: 9, name: 'Matching Jewelry Set', price: 'Enquire', emoji: '💛' };
+  }
+
+  if (suggestion) {
+    const bundleDiv = document.createElement('div');
+    bundleDiv.className = 'cart-bundle-offer';
+    bundleDiv.innerHTML = `
+      <div class="bundle-label">Smart Pair 💡</div>
+      <div class="bundle-row">
+        <span>${suggestion.emoji} ${suggestion.name}</span>
+        <button onclick="addToCart(${suggestion.id})">+ Add</button>
+      </div>
+    `;
+    body.appendChild(bundleDiv);
+  }
 }
 
 function checkoutCart() {
@@ -154,21 +184,21 @@ function escapeHtml(str) {
 
 // ── Default products ──
 const defaultProducts = [
-  { id:1,  name:'Raw Mango Pickle',     nameTa:'மாங்காய் ஊறுகாய்',      price:'₹80',     cat:'pickle',  badge:'Hot',     emoji:'🥭', bg:'linear-gradient(135deg,#fff3c0,#ffe082)',   img:null },
-  { id:2,  name:'Garlic Pickle',        nameTa:'பூண்டு ஊறுகாய்',        price:'₹90',     cat:'pickle',  badge:'',        emoji:'🧄', bg:'linear-gradient(135deg,#e8f5e9,#c8e6c9)',   img:null },
-  { id:3,  name:'Red Banana Malt',      nameTa:'நேந்திரம் மால்ட்',       price:'₹150',    cat:'drink',   badge:'New',     emoji:'🍌', bg:'linear-gradient(135deg,#fce4ec,#f8bbd0)',   img:null },
-  { id:4,  name:'Karpu Kavuni Flakes',  nameTa:'கருப்பு கவுனி',          price:'₹200',    cat:'other',   badge:'Pure',    emoji:'🌾', bg:'linear-gradient(135deg,#3d1f5e,#6a3b8a)',   img:null },
-  { id:5,  name:'Garam Masala',         nameTa:'கரம் மசாலா',             price:'₹60',     cat:'spice',   badge:'',        emoji:'🌶️',bg:'linear-gradient(135deg,#fff3e0,#ffcc80)',   img:null },
-  { id:6,  name:'Vadangam',             nameTa:'வடகம்',                   price:'₹50',     cat:'spice',   badge:'',        emoji:'☀️', bg:'linear-gradient(135deg,#fff9c4,#fff176)',   img:null },
-  { id:7,  name:'Hibiscus Tea Pack',    nameTa:'செம்பருத்தி தேயிலை',     price:'₹120',    cat:'drink',   badge:'',        emoji:'🌺', bg:'linear-gradient(135deg,#fce4ec,#f06292)',   img:null },
-  { id:8,  name:'Butterfly Pea Tea',    nameTa:'அப்பரஞ்சி தேயிலை',      price:'₹130',    cat:'drink',   badge:'Rare',    emoji:'💙', bg:'linear-gradient(135deg,#e3f2fd,#90caf9)',   img:null },
-  { id:9,  name:'Necklace Set',         nameTa:'மாலை செட்',              price:'Enquire', cat:'jewelry', badge:'Popular', emoji:'💛', bg:'linear-gradient(135deg,#fff8dc,#ffe680)',   img:null },
-  { id:10, name:'Earrings',             nameTa:'காது மணி',               price:'Enquire', cat:'jewelry', badge:'',        emoji:'💜', bg:'linear-gradient(135deg,#ffeeff,#ffb3ff)',   img:null },
-  { id:11, name:'Bangles',              nameTa:'வளையல்',                  price:'Enquire', cat:'jewelry', badge:'',        emoji:'🔶', bg:'linear-gradient(135deg,#ffecb3,#ffd54f)',   img:null },
-  { id:12, name:'Hair Accessories',     nameTa:'தலை அணிகலன்',            price:'Enquire', cat:'jewelry', badge:'New',     emoji:'🌸', bg:'linear-gradient(135deg,#e0f7fa,#80deea)',   img:null },
-  { id:13, name:'Khadi Cotton Sarees',  nameTa:'',                        price:'Enquire', cat:'saree',   badge:'',        emoji:'🥻', bg:'linear-gradient(135deg,#fff8f2,#fef3e0)',   img:null },
-  { id:14, name:'Mangalagiri Sarees',   nameTa:'',                        price:'Enquire', cat:'saree',   badge:'',        emoji:'✨', bg:'linear-gradient(135deg,#e8f5e9,#c8e6c9)',   img:null },
-  { id:15, name:'Mangalagiri Kurtis',   nameTa:'',                        price:'Enquire', cat:'saree',   badge:'',        emoji:'👗', bg:'linear-gradient(135deg,#fce4ec,#f8bbd0)',   img:null },
+  { id:1,  name:'Raw Mango Pickle',     nameTa:'மாங்காய் ஊறுகாய்',      price:'₹80',     cat:'pickle',  badge:'Hot',     emoji:'🥭', bg:'linear-gradient(135deg,#fff3c0,#ffe082)',   origin:'Organic Farm, Madurai', img:null },
+  { id:2,  name:'Garlic Pickle',        nameTa:'பூண்டு ஊறுகாய்',        price:'₹90',     cat:'pickle',  badge:'',        emoji:'🧄', bg:'linear-gradient(135deg,#e8f5e9,#c8e6c9)',   origin:'Heritage Kitchen, Tanjore', img:null },
+  { id:3,  name:'Red Banana Malt',      nameTa:'நேந்திரம் மால்ட்',       price:'₹150',    cat:'drink',   badge:'New',     emoji:'🍌', bg:'linear-gradient(135deg,#fce4ec,#f8bbd0)',   origin:'Salem Orchards', img:null },
+  { id:4,  name:'Karpu Kavuni Flakes',  nameTa:'கருப்பு கவுனி',          price:'₹200',    cat:'other',   badge:'Pure',    emoji:'🌾', bg:'linear-gradient(135deg,#3d1f5e,#6a3b8a)',   origin:'Karaikudi Fields', img:null },
+  { id:5,  name:'Garam Masala',         nameTa:'கரம் மசாலா',             price:'₹60',     cat:'spice',   badge:'',        emoji:'🌶️',bg:'linear-gradient(135deg,#fff3e0,#ffcc80)',   origin:'Home Ground, Coimbatore', img:null },
+  { id:6,  name:'Vadangam',             nameTa:'வடகம்',                   price:'₹50',     cat:'spice',   badge:'',        emoji:'☀️', bg:'linear-gradient(135deg,#fff9c4,#fff176)',   origin:'Traditional Sundried, Erode', img:null },
+  { id:7,  name:'Hibiscus Tea Pack',    nameTa:'செம்பருத்தி தேயிலை',     price:'₹120',    cat:'drink',   badge:'',        emoji:'🌺', bg:'linear-gradient(135deg,#fce4ec,#f06292)',   origin:'Nilgiri Hills', img:null },
+  { id:8,  name:'Butterfly Pea Tea',    nameTa:'அப்பரஞ்சி தேயிலை',      price:'₹130',    cat:'drink',   badge:'Rare',    emoji:'💙', bg:'linear-gradient(135deg,#e3f2fd,#90caf9)',   origin:'Nilgiri Hills', img:null },
+  { id:9,  name:'Necklace Set',         nameTa:'மாலை செட்',              price:'Enquire', cat:'jewelry', badge:'Popular', emoji:'💛', bg:'linear-gradient(135deg,#fff8dc,#ffe680)',   origin:'Artisan Studio, Kumbakonam', img:null },
+  { id:10, name:'Earrings',             nameTa:'காது மணி',               price:'Enquire', cat:'jewelry', badge:'',        emoji:'💜', bg:'linear-gradient(135deg,#ffeeff,#ffb3ff)',   origin:'Handcrafted, Chennai', img:null },
+  { id:11, name:'Bangles',              nameTa:'வளையல்',                  price:'Enquire', cat:'jewelry', badge:'',        emoji:'🔶', bg:'linear-gradient(135deg,#ffecb3,#ffd54f)',   origin:'Handcrafted, Chennai', img:null },
+  { id:12, name:'Hair Accessories',     nameTa:'தலை அணிகலன்',            price:'Enquire', cat:'jewelry', badge:'New',     emoji:'🌸', bg:'linear-gradient(135deg,#e0f7fa,#80deea)',   origin:'Artisan Studio, Kumbakonam', img:null },
+  { id:13, name:'Khadi Cotton Sarees',  nameTa:'',                        price:'Enquire', cat:'saree',   badge:'',        emoji:'🥻', bg:'linear-gradient(135deg,#fff8f2,#fef3e0)',   origin:'Weavers Colony, Kanchipuram', img:null },
+  { id:14, name:'Mangalagiri Sarees',   nameTa:'',                        price:'Enquire', cat:'saree',   badge:'',        emoji:'✨', bg:'linear-gradient(135deg,#e8f5e9,#c8e6c9)',   origin:'Traditional Looms, Mangalagiri', img:null },
+  { id:15, name:'Mangalagiri Kurtis',   nameTa:'',                        price:'Enquire', cat:'saree',   badge:'',        emoji:'👗', bg:'linear-gradient(135deg,#fce4ec,#f8bbd0)',   origin:'Traditional Looms, Mangalagiri', img:null },
 ];
 
 // ──────────────────────────────────────────────
@@ -276,11 +306,13 @@ function renderGrid(gridId, prods) {
       <div class="product-img" style="background:${p.bg};">
         ${p.img ? `<img src="${p.img}" alt="${escapeHtml(p.name)}" />` : `<span class="emoji-fallback">${p.emoji}</span>`}
         ${p.badge ? `<span class="product-badge">${p.badge}</span>` : ''}
+        ${p.cat === 'pickle' || p.cat === 'saree' ? `<div class="holo-seal" title="Verified Pure Authentic"></div>` : ''}
       </div>
       <div class="product-body">
         <div class="product-name">${escapeHtml(p.name)}</div>
         ${p.nameTa ? `<div class="product-name-ta">${escapeHtml(p.nameTa)}</div>` : ''}
         <div class="product-price">${escapeHtml(p.price)}</div>
+        <button class="btn-trace" onclick="traceOrigin(${p.id})">📍 Trace Origin</button>
       </div>
       <button class="btn-order-now" data-product-id="${p.id}">Order Now</button>
     </div>
@@ -290,6 +322,12 @@ function renderGrid(gridId, prods) {
   grid.querySelectorAll('.btn-order-now').forEach(btn => {
     btn.addEventListener('click', () => addToCart(parseInt(btn.dataset.productId)));
   });
+}
+
+function traceOrigin(id) {
+  const p = getProducts().find(x => x.id === id);
+  if (!p) return;
+  showToast(`📍 Origin: ${p.origin || 'Annai Kitchen Artisan Studio'}`);
 }
 
 // ── Category filter ──
@@ -831,18 +869,27 @@ Annai's Kitchen Order System`;
   orders.push(orderData);
   localStorage.setItem('ak_orders', JSON.stringify(orders));
 
-  // Show scanning effect on order modal
+  // Show Digital Unboxing effect
   const modalBox = document.querySelector('#orderModal .modal-box');
-  const scanner = document.createElement('div');
-  scanner.className = 'scanner-overlay';
-  modalBox.appendChild(scanner);
+  const unboxing = document.createElement('div');
+  unboxing.className = 'unboxing-container';
+  unboxing.innerHTML = `
+    <div class="unbox-box">🎁</div>
+    <div class="unbox-glow"></div>
+    <div class="unbox-text">Preparing your Experience...</div>
+  `;
+  modalBox.appendChild(unboxing);
 
   setTimeout(() => {
-    scanner.remove();
-    // Show order ID in success message
+    unboxing.classList.add('open');
+    unboxing.querySelector('.unbox-text').textContent = 'Authenticity Verified ✓';
+  }, 1000);
+
+  setTimeout(() => {
+    unboxing.remove();
     document.getElementById('orderSuccessId').textContent = 'Order ID: ' + orderId;
     setOrderStep(3);
-  }, 2000);
+  }, 3500);
 
   // WhatsApp — direct wa.me link (works reliably on mobile & desktop)
   window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(orderText)}`,'_blank');
