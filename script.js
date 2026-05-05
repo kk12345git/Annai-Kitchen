@@ -1438,6 +1438,13 @@ function updateInvoicePreview() {
 // INITIALIZATION
 // ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  // Register Service Worker for PWA (Mobile Download)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed:', err));
+    });
+  }
+
   // Init translations
   updateTranslations();
   document.documentElement.lang = currentLang;
@@ -1445,30 +1452,37 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Clerk Init
   const clerkKey = "pk_test_YW1wbGUtZWxmLTUwLmNsZXJrLmFjY291bnRzLmRldiQ"; 
   
-  if (window.Clerk) {
-    try {
-      await Clerk.load({ publishableKey: clerkKey });
-      if (Clerk.user) {
-        syncClerkUser();
-      } else {
-        mountClerkUI();
-      }
-      
-      Clerk.addListener(({ user }) => {
-        if (user) {
+  async function initClerk() {
+    if (window.Clerk) {
+      try {
+        await Clerk.load({ publishableKey: clerkKey });
+        if (Clerk.user) {
           syncClerkUser();
         } else {
-          currentUser = null;
-          localStorage.removeItem('ak_user');
-          document.getElementById('userBadge').style.display = 'none';
-          document.getElementById('heroBtns').style.display  = 'flex';
           mountClerkUI();
         }
-      });
-    } catch (err) {
-      console.error("Clerk error:", err);
+        
+        Clerk.addListener(({ user }) => {
+          if (user) {
+            syncClerkUser();
+          } else {
+            currentUser = null;
+            localStorage.removeItem('ak_user');
+            document.getElementById('userBadgeWrap').style.display = 'none';
+            document.getElementById('heroBtns').style.display  = 'flex';
+            mountClerkUI();
+          }
+        });
+      } catch (err) {
+        console.error("Clerk error:", err);
+      }
+    } else {
+      // If not loaded yet, wait 200ms and try again
+      setTimeout(initClerk, 200);
     }
   }
+
+  initClerk();
 
   // Existing init
   initGoogleAuth(); // This can be removed or kept as fallback
@@ -1484,15 +1498,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ──────────────────────────────────────────────
 const SB_URL = "https://phylsekfnpbbwravtszf.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoeWxzZWtmbnBiYndyYXZ0c3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5Njk3NjgsImV4cCI6MjA5MzU0NTc2OH0.avLH1VbBdj58zWkqqAnoWg948NUA92ynOYlKlmZ2Yh4";
-let supabase = null;
+let sb = null;
 
-if (typeof supabasejs !== 'undefined') {
-  supabase = supabasejs.createClient(SB_URL, SB_KEY);
+if (typeof supabase !== 'undefined' && supabase.createClient) {
+  sb = supabase.createClient(SB_URL, SB_KEY);
+} else if (typeof supabasejs !== 'undefined') {
+  sb = supabasejs.createClient(SB_URL, SB_KEY);
 }
 
 async function upsertCustomer(user) {
-  if (!supabase) return;
-  const { data, error } = await supabase
+  if (!sb) return;
+  const { data, error } = await sb
     .from('customers')
     .upsert({
       clerk_id: user.id,
@@ -1506,8 +1522,8 @@ async function upsertCustomer(user) {
 }
 
 async function saveOrderToCloud(order) {
-  if (!supabase) return;
-  const { error } = await supabase
+  if (!sb) return;
+  const { error } = await sb
     .from('orders')
     .insert([{
       order_id: order.id,
@@ -1539,11 +1555,11 @@ function showAdminTab(tabId) {
 
 async function renderAdminCustomers() {
   const list = document.getElementById('adminCustomersList');
-  if (!list || !supabase) return;
+  if (!list || !sb) return;
   
   list.innerHTML = '<div class="loading-spinner">Loading customers...</div>';
   
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from('customers')
     .select('*')
     .order('last_login', { ascending: false });
@@ -1577,11 +1593,11 @@ async function renderAdminCustomers() {
 
 async function renderAdminOrdersFromCloud() {
   const list = document.getElementById('adminOrdersList');
-  if (!list || !supabase) return;
+  if (!list || !sb) return;
   
   list.innerHTML = '<div class="loading-spinner">Loading cloud orders...</div>';
   
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from('orders')
     .select('*')
     .order('created_at', { ascending: false });

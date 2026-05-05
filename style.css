@@ -1463,3 +1463,12 @@ body {
   50% { transform: translateY(-10px); }
 }
 .emoji-bounce { animation: emoji-bounce 2s infinite ease-in-out; }
+
+#clerk-signin-container, #clerk-signup-container {
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
