@@ -45,6 +45,7 @@ let editImgData = null;
 let otpStore    = { otp:null, expires:null };
 let sotpStore   = { otp:null, expires:null };
 let orders      = JSON.parse(localStorage.getItem('ak_orders')||'[]'); // Store all orders
+let currentInvoiceItems = []; // State for invoice generator
 
 // ── Device ID ──
 function getDeviceId() {
@@ -248,7 +249,18 @@ function showSection(id) {
   document.getElementById('sec-' + id)?.classList.add('active');
   document.querySelector(`.tab-btn[data-section="${id}"]`)?.classList.add('active');
   document.getElementById('bnav-' + id)?.classList.add('active');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  
+  // If it's a shop section, scroll to the header
+  if (['foods', 'jewelry', 'sarees'].includes(id)) {
+    const sec = document.getElementById('sec-' + id);
+    if (sec) {
+      const offset = 80; // height of sticky nav
+      const top = sec.getBoundingClientRect().top + window.pageYOffset - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   
   // Show/Hide search bar based on section
   const searchBar = document.querySelector('.search-filter-bar');
@@ -774,7 +786,10 @@ function renderAdminOrders() {
     const date = new Date(order.date).toLocaleString();
     return `
       <div class="admin-product-item" style="flex-direction:column;align-items:flex-start;">
-        <div style="font-weight:600;color:var(--rust);">Order #${order.id}</div>
+        <div style="display:flex;justify-content:space-between;width:100%;">
+          <div style="font-weight:600;color:var(--rust);">Order #${order.id}</div>
+          <button class="btn-edit" style="padding:4px 8px;font-size:11px;" onclick="openInvoiceGenerator('${order.id}')">📄 Invoice</button>
+        </div>
         <div style="font-size:12px;color:#666;">${date}</div>
         <div style="margin:8px 0;">${escapeHtml(order.customer)} | ${order.phone1}</div>
         <div style="font-size:12px;">${escapeHtml(itemsText)}</div>
@@ -1151,3 +1166,97 @@ window.addEventListener('DOMContentLoaded', () => {
   // Init Google Auth
   initGoogleAuth();
 });
+
+// ──────────────────────────────────────────────
+// INVOICE GENERATOR LOGIC
+// ──────────────────────────────────────────────
+function openInvoiceGenerator(orderId) {
+  const order = orders.find(o => o.id === orderId);
+  if (!order) { showToast('Order not found!'); return; }
+
+  const orderDateObj = new Date(order.date);
+  const formattedOrderDate = orderDateObj.toISOString().split('T')[0];
+
+  // Pre-fill invoice fields automatically from order data
+  document.getElementById('inv-no').value    = order.id.replace('AK-', 'INV-');
+  document.getElementById('inv-date').value  = formattedOrderDate;
+  document.getElementById('inv-duedate').value = formattedOrderDate; // Default to same day
+  document.getElementById('inv-bname').value = order.customer;
+  
+  // Format address with explicit line breaks for the textarea
+  const cleanAddr = order.address.replace(/,/g, ',\n');
+  document.getElementById('inv-baddr').value = cleanAddr + (order.phone1 ? `\n\nPhone: ${order.phone1}` : '');
+  document.getElementById('inv-delivery').value = 0; 
+
+  // Pre-fill items from the order's cart
+  currentInvoiceItems = order.items.map(item => {
+    const priceNum = parseFloat(String(item.price).replace(/[^\d.]/g, '')) || 0;
+    return {
+      name: item.name,
+      qty: item.qty,
+      rate: priceNum
+    };
+  });
+
+  renderInvoiceSidebar();
+  updateInvoicePreview();
+  openModal('invoiceModal');
+  
+  showToast(`Invoice ready for ${order.customer}! 📄`);
+}
+
+function renderInvoiceSidebar() {
+  const el = document.getElementById('inv-item-list');
+  if (!el) return;
+  el.innerHTML = '';
+  currentInvoiceItems.forEach((it, i) => {
+    const d = document.createElement('div');
+    d.className = 'inv-item-row';
+    d.innerHTML = `
+      <input value="${escapeHtml(it.name)}" placeholder="Item" oninput="currentInvoiceItems[${i}].name=this.value;updateInvoicePreview()">
+      <input type="number" value="${it.qty}" min="0" oninput="currentInvoiceItems[${i}].qty=parseFloat(this.value)||0;updateInvoicePreview()">
+      <input type="number" value="${it.rate}" min="0" oninput="currentInvoiceItems[${i}].rate=parseFloat(this.value)||0;updateInvoicePreview()">
+      <button class="inv-del-btn" onclick="currentInvoiceItems.splice(${i},1);renderInvoiceSidebar();updateInvoicePreview()">×</button>`;
+    el.appendChild(d);
+  });
+}
+
+function addInvoiceItem() {
+  currentInvoiceItems.push({ name: 'New Item', qty: 1, rate: 0 });
+  renderInvoiceSidebar();
+  updateInvoicePreview();
+}
+
+function updateInvoicePreview() {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fmtDate = (v) => { if(!v) return ''; const p=v.split('-'); return p[2]+' '+months[+p[1]-1]+' '+p[0]; };
+  const money = (n) => '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  document.getElementById('p-inv-bname').textContent = document.getElementById('inv-bname').value || 'Customer Name';
+  
+  // Convert newlines in textarea to <br> for HTML preview
+  const addrVal = document.getElementById('inv-baddr').value || 'Address, City';
+  document.getElementById('p-inv-baddr').innerHTML = addrVal.replace(/\n/g, '<br>');
+  
+  document.getElementById('p-inv-no').textContent    = document.getElementById('inv-no').value;
+  document.getElementById('p-inv-date').textContent  = fmtDate(document.getElementById('inv-date').value);
+  document.getElementById('p-inv-duedate').textContent = fmtDate(document.getElementById('inv-duedate').value);
+
+  const delivery = parseFloat(document.getElementById('inv-delivery').value) || 0;
+  const tbody = document.getElementById('p-inv-items');
+  tbody.innerHTML = '';
+  let sub = 0;
+  
+  currentInvoiceItems.forEach((it, i) => {
+    const amt = it.qty * it.rate;
+    sub += amt;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i+1}</td><td>${escapeHtml(it.name)}</td><td>${it.qty}</td><td>${it.rate.toFixed(2)}</td><td>${amt.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const total = sub + delivery;
+  document.getElementById('p-inv-sub').textContent   = money(sub);
+  document.getElementById('p-inv-del').textContent   = money(delivery);
+  document.getElementById('p-inv-total').textContent = money(total);
+}

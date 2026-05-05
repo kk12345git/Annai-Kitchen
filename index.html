@@ -72,7 +72,7 @@
   }
   </script>
 
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link rel="stylesheet" href="style.css" />
@@ -236,6 +236,149 @@
       <div class="upload-text">Click to change image</div>
     </div>
     <button class="btn-primary" onclick="saveEditProduct()">Save Changes</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     INVOICE GENERATOR MODAL (NEW)
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="invoiceModal" role="dialog" aria-modal="true" style="padding:0; align-items:stretch; justify-content:stretch;">
+  <div class="invoice-app-container">
+    <button class="modal-close" onclick="closeModal('invoiceModal')" style="top:10px; right:10px; z-index:1001; background:rgba(0,0,0,0.5);">✕</button>
+    
+    <!-- SIDEBAR -->
+    <div class="inv-sidebar">
+      <div class="inv-sidebar-brand">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="47" fill="#1a0a1e" stroke="#c0392b" stroke-width="2.5"/>
+          <path d="M18 72 L36 28 L54 72 M24 56 L48 56" stroke="#e05020" stroke-width="5.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="54" y1="10" x2="54" y2="76" stroke="#2c3e8c" stroke-width="5" stroke-linecap="round"/>
+          <line x1="54" y1="76" x2="74" y2="76" stroke="#2c3e8c" stroke-width="5" stroke-linecap="round"/>
+          <path d="M50 4 Q54 -1 58 4 Q56 8 54 8 Q52 8 50 4Z" fill="#d4a017"/>
+        </svg>
+        <div class="inv-sidebar-brand-text">
+          <div class="t1">AL PRODUCTION</div>
+          <div class="t2">Invoice Generator</div>
+        </div>
+      </div>
+
+      <div class="inv-sidebar-content">
+        <div class="inv-sidebar-section">
+          <div class="inv-sec-label">Invoice Details</div>
+          <div class="inv-field"><label>Invoice #</label><input id="inv-no" value="INV-000001" oninput="updateInvoicePreview()"></div>
+          <div class="inv-field"><label>Invoice Date</label><input id="inv-date" type="date" oninput="updateInvoicePreview()"></div>
+          <div class="inv-field"><label>Due Date</label><input id="inv-duedate" type="date" oninput="updateInvoicePreview()"></div>
+        </div>
+
+        <div class="inv-divider"></div>
+
+        <div class="inv-sidebar-section">
+          <div class="inv-sec-label">Customer</div>
+          <div class="inv-field"><label>Name</label><input id="inv-bname" placeholder="Customer Name" oninput="updateInvoicePreview()"></div>
+          <div class="inv-field"><label>Address</label><textarea id="inv-baddr" placeholder="Address, City" oninput="updateInvoicePreview()"></textarea></div>
+        </div>
+
+        <div class="inv-divider"></div>
+
+        <div class="inv-sidebar-section">
+          <div class="inv-sec-label">Line Items</div>
+        </div>
+        <div class="inv-items-head">
+          <span>Item</span><span>Qty</span><span>Rate</span>
+        </div>
+        <div class="inv-item-list" id="inv-item-list"></div>
+        <button class="inv-add-btn" onclick="addInvoiceItem()">+ Add item</button>
+
+        <div class="inv-divider"></div>
+
+        <div class="inv-sidebar-section">
+          <div class="inv-sec-label">Charges</div>
+          <div class="inv-field"><label>Delivery Charge (₹)</label><input id="inv-delivery" type="number" value="0" min="0" oninput="updateInvoicePreview()"></div>
+        </div>
+
+        <button class="inv-print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="inv-preview-pane">
+      <div class="inv-preview-label">Live Invoice Preview</div>
+
+      <div id="inv-paper">
+        <div class="inv-paper-header">
+          <div class="inv-logo-block">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="100" cy="100" r="96" fill="#2a0a18"/>
+              <circle cx="100" cy="100" r="93" fill="none" stroke="#c0392b" stroke-width="4"/>
+              <line x1="30" y1="148" x2="72" y2="42" stroke="#e05520" stroke-width="11" stroke-linecap="round"/>
+              <line x1="72" y1="42" x2="108" y2="148" stroke="#e05520" stroke-width="10" stroke-linecap="round"/>
+              <line x1="42" y1="108" x2="94" y2="108" stroke="#e05520" stroke-width="8" stroke-linecap="round"/>
+              <line x1="108" y1="16" x2="108" y2="155" stroke="#2c3e8c" stroke-width="10" stroke-linecap="round"/>
+              <line x1="108" y1="155" x2="148" y2="155" stroke="#2c3e8c" stroke-width="9" stroke-linecap="round"/>
+              <path d="M100 6 Q108 0 116 6 Q114 12 108 13 Q102 12 100 6Z" fill="#d4a017"/>
+            </svg>
+            <div class="inv-logo-tamil">அன்னையின் மசாலா</div>
+            <div class="inv-logo-en">AL PRODUCTION</div>
+          </div>
+
+          <div class="inv-co-info">
+            <div class="inv-co-name">AL Production</div>
+            <div class="inv-co-tamil">அன்னையின் மசாலா</div>
+            <div class="inv-co-addr">
+              No 286, Mudaliyar Street<br>
+              Balaji Nagar, Anuppambattu<br>
+              Tamil Nadu – 601203
+            </div>
+          </div>
+        </div>
+
+        <div class="inv-title-bar"><h1>DELIVERY INVOICE</h1></div>
+
+        <div class="inv-meta">
+          <div>
+            <div class="inv-bill-block">
+              <div class="inv-blabel">Bill To</div>
+              <strong id="p-inv-bname">Customer Name</strong>
+              <span id="p-inv-baddr">Address, City</span>
+            </div>
+          </div>
+          <div>
+            <table class="inv-meta-table">
+              <tr><td>Invoice #</td><td id="p-inv-no">INV-000001</td></tr>
+              <tr><td>Invoice Date</td><td id="p-inv-date"></td></tr>
+              <tr><td>Due Date</td><td id="p-inv-duedate"></td></tr>
+            </table>
+          </div>
+        </div>
+
+        <table class="inv-items-table">
+          <thead>
+            <tr>
+              <th style="width:36px">#</th>
+              <th>Item & Description</th>
+              <th style="width:60px">Qty</th>
+              <th style="width:80px">Rate (₹)</th>
+              <th style="width:90px">Total (₹)</th>
+            </tr>
+          </thead>
+          <tbody id="p-inv-items"></tbody>
+        </table>
+
+        <div class="inv-bottom-row">
+          <div class="inv-notes">Thanks for your business.</div>
+          <div class="inv-totals-box">
+            <div class="inv-t-row"><span>Sub Total</span><span id="p-inv-sub">₹0.00</span></div>
+            <div class="inv-t-row"><span>Delivery</span><span id="p-inv-del">₹0.00</span></div>
+            <div class="inv-t-row inv-grand"><span>Total</span><span id="p-inv-total">₹0.00</span></div>
+          </div>
+        </div>
+
+        <div class="inv-footer">
+          <strong>Terms & Conditions</strong><br>
+          Authentic homemade quality from Annai's Kitchen.
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
