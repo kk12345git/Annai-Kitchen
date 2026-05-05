@@ -553,15 +553,31 @@ function showToast(msg, duration = 2800) {
 // ──────────────────────────────────────────────
 // MODAL HELPERS
 // ──────────────────────────────────────────────
-function openModal(id)  { 
-  document.getElementById(id).classList.add('open'); 
-  document.body.style.overflow='hidden';
+function openModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) {
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (id === 'authModal') {
+      // Force mount Clerk UI when opening the auth modal
+      if (window.Clerk && Clerk.isReady && Clerk.isReady()) {
+        mountClerkUI();
+      } else {
+        // Retry in a moment if not ready
+        setTimeout(mountClerkUI, 500);
+      }
+    }
+  }
 }
-function closeModal(id) { 
-  document.getElementById(id).classList.remove('open'); 
-  // Only restore overflow if cart drawer is not open
-  if (!document.getElementById('cartDrawer').classList.contains('open')) {
-    document.body.style.overflow=''; 
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) {
+    modal.classList.remove('open');
+    // Only restore overflow if cart drawer is not open
+    if (!document.getElementById('cartDrawer').classList.contains('open')) {
+      document.body.style.overflow = '';
+    }
   }
 }
 
@@ -1134,6 +1150,7 @@ Annai's Kitchen Order System`;
   };
   orders.push(orderData);
   localStorage.setItem('ak_orders', JSON.stringify(orders));
+  saveOrderToCloud(orderData); // Save to cloud
 
   // Show Digital Unboxing effect
   const modalBox = document.querySelector('#orderModal .modal-box');
@@ -1460,11 +1477,157 @@ document.addEventListener('DOMContentLoaded', async () => {
   initReveals();
 });
 
+
+
+// ──────────────────────────────────────────────
+// SUPABASE DATABASE LOGIC
+// ──────────────────────────────────────────────
+const SB_URL = "https://phylsekfnpbbwravtszf.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoeWxzZWtmbnBiYndyYXZ0c3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5Njk3NjgsImV4cCI6MjA5MzU0NTc2OH0.avLH1VbBdj58zWkqqAnoWg948NUA92ynOYlKlmZ2Yh4";
+let supabase = null;
+
+if (typeof supabasejs !== 'undefined') {
+  supabase = supabasejs.createClient(SB_URL, SB_KEY);
+}
+
+async function upsertCustomer(user) {
+  if (!supabase) return;
+  const { data, error } = await supabase
+    .from('customers')
+    .upsert({
+      clerk_id: user.id,
+      name: user.name,
+      email: user.email,
+      photo: user.photo,
+      last_login: new Date().toISOString()
+    }, { onConflict: 'clerk_id' });
+  
+  if (error) console.error('Supabase Error:', error);
+}
+
+async function saveOrderToCloud(order) {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('orders')
+    .insert([{
+      order_id: order.id,
+      customer_name: order.customer,
+      items: order.items,
+      total: order.total,
+      address: order.address,
+      phone: order.phone1,
+      device_id: order.deviceId,
+      created_at: new Date().toISOString()
+    }]);
+  
+  if (error) console.error('Supabase Order Error:', error);
+}
+
+// ──────────────────────────────────────────────
+// ADMIN TAB MANAGEMENT
+// ──────────────────────────────────────────────
+function showAdminTab(tabId) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-sub-sec').forEach(s => s.classList.remove('active'));
+  
+  document.querySelector(`.admin-tab[onclick*="${tabId}"]`).classList.add('active');
+  document.getElementById('admin-sec-' + tabId).classList.add('active');
+  
+  if (tabId === 'customers') renderAdminCustomers();
+  if (tabId === 'orders') renderAdminOrdersFromCloud();
+}
+
+async function renderAdminCustomers() {
+  const list = document.getElementById('adminCustomersList');
+  if (!list || !supabase) return;
+  
+  list.innerHTML = '<div class="loading-spinner">Loading customers...</div>';
+  
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*')
+    .order('last_login', { ascending: false });
+    
+  if (error) {
+    list.innerHTML = '<p>Failed to load customers.</p>';
+    return;
+  }
+  
+  if (data.length === 0) {
+    list.innerHTML = '<p>No customers found in database.</p>';
+    return;
+  }
+  
+  list.innerHTML = data.map(c => `
+    <div class="admin-product-item">
+      <div class="admin-product-thumb">
+        <img src="${c.photo || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}" alt="${c.name}" style="border-radius:50%;" />
+      </div>
+      <div class="admin-product-details">
+        <div class="name">${escapeHtml(c.name)}</div>
+        <div class="price" style="font-size:12px; font-weight:400;">${escapeHtml(c.email)}</div>
+        <div class="cat" style="font-size:10px;">ID: ${c.clerk_id}</div>
+      </div>
+      <div style="font-size:11px; color:#888;">
+        Last: ${new Date(c.last_login).toLocaleDateString()}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function renderAdminOrdersFromCloud() {
+  const list = document.getElementById('adminOrdersList');
+  if (!list || !supabase) return;
+  
+  list.innerHTML = '<div class="loading-spinner">Loading cloud orders...</div>';
+  
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false });
+    
+  if (error) {
+    list.innerHTML = '<p>Failed to load cloud orders.</p>';
+    return;
+  }
+  
+  if (data.length === 0) {
+    list.innerHTML = '<p>No orders found in cloud database.</p>';
+    return;
+  }
+  
+  list.innerHTML = data.map(order => {
+    const itemsText = order.items.map(i => `${i.name} × ${i.qty}`).join(', ');
+    return `
+      <div class="admin-product-item" style="flex-direction:column;align-items:flex-start;">
+        <div style="display:flex;justify-content:space-between;width:100%;">
+          <div style="font-weight:600;color:var(--rust);">Order #${order.order_id}</div>
+          <button class="btn-edit" style="padding:4px 8px;font-size:11px;" onclick="openInvoiceGenerator('${order.order_id}')">📄 Invoice</button>
+        </div>
+        <div style="font-size:12px;color:#666;">${new Date(order.created_at).toLocaleString()}</div>
+        <div style="margin:8px 0;">${escapeHtml(order.customer_name)} | ${order.phone}</div>
+        <div style="font-size:12px;">${escapeHtml(itemsText)}</div>
+        <div style="margin-top:4px;font-weight:600;">Total: ₹${order.total}</div>
+      </div>
+    `;
+  }).join('');
+}
+
 function mountClerkUI() {
   const signInDiv = document.getElementById('clerk-signin-container');
   const signUpDiv = document.getElementById('clerk-signup-container');
-  if (signInDiv) Clerk.mountSignIn(signInDiv);
-  if (signUpDiv) Clerk.mountSignUp(signUpDiv);
+  
+  if (window.Clerk && Clerk.isReady && Clerk.isReady()) {
+    if (signInDiv && signInDiv.innerHTML === "") {
+      Clerk.mountSignIn(signInDiv);
+    }
+    if (signUpDiv && signUpDiv.innerHTML === "") {
+      Clerk.mountSignUp(signUpDiv);
+    }
+  } else if (window.Clerk) {
+    // If Clerk is there but not ready, wait a bit
+    setTimeout(mountClerkUI, 500);
+  }
 }
 
 function syncClerkUser() {
@@ -1476,6 +1639,7 @@ function syncClerkUser() {
     photo: user.imageUrl
   };
   localStorage.setItem('ak_user', JSON.stringify(currentUser));
+  upsertCustomer(currentUser); // Save to cloud
   showUserBadge();
   closeModal('authModal');
 }

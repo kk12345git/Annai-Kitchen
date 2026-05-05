@@ -112,6 +112,10 @@
   ></script>
 
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -133,13 +137,13 @@
     <div id="oldAuthForms" style="display:none;">
       <!-- Hidden old forms to avoid breaking existing code while migrating -->
       <div class="auth-tabs">
-      <button class="auth-tab active" id="tabLogin"  onclick="switchAuthTab('login')">Login</button>
-      <button class="auth-tab"        id="tabSignup" onclick="switchAuthTab('signup')">Sign Up</button>
-    </div>
+        <button class="auth-tab active" id="tabLogin"  onclick="switchAuthTab('login')">Login</button>
+        <button class="auth-tab"        id="tabSignup" onclick="switchAuthTab('signup')">Sign Up</button>
+      </div>
 
-    <!-- LOGIN -->
-    <div id="loginForm">
-      <div class="or-divider">Login with</div>
+      <!-- LOGIN -->
+      <div id="loginForm">
+        <div class="or-divider">Login with</div>
       <button class="btn-secondary" style="margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="googleLogin()">
         <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;" alt="Google" /> Continue with Google
       </button>
@@ -634,38 +638,52 @@
     <button class="admin-logout" onclick="adminLogout()">Logout</button>
   </div>
 
-  <!-- Add New Product -->
-  <div class="admin-section-title">➕ Add New Product</div>
-  <div class="add-product-card">
-    <label class="field-label">Product Name <span style="color:var(--rust);">*</span></label>
-    <input class="form-input" id="new-name"  type="text" placeholder="e.g. Lemon Pickle" />
-    <label class="field-label">Price (₹) <span style="color:var(--rust);">*</span></label>
-    <input class="form-input" id="new-price" type="text" placeholder="e.g. 120" />
-    <label class="field-label">Category <span style="color:var(--rust);">*</span></label>
-    <select class="form-input" id="new-cat">
-      <option value="pickle">Pickle</option>
-      <option value="drink">Drink / Malt</option>
-      <option value="spice">Spice</option>
-      <option value="jewelry">Jewelry</option>
-      <option value="saree">Saree / Kurti</option>
-      <option value="other">Other</option>
-    </select>
-    <label class="field-label">Product Image</label>
-    <div class="img-upload-area" id="newImgArea">
-      <input type="file" accept="image/*" onchange="handleNewImg(this)" />
-      <div class="upload-icon">📷</div>
-      <div class="upload-text">Click to upload product image</div>
-    </div>
-    <button class="btn-primary" onclick="addProduct()">Add Product →</button>
+  <div class="admin-tabs">
+    <button class="admin-tab active" onclick="showAdminTab('products')">Inventory</button>
+    <button class="admin-tab" onclick="showAdminTab('orders')">Orders</button>
+    <button class="admin-tab" onclick="showAdminTab('customers')">Customers</button>
   </div>
 
-  <!-- Manage Products -->
-  <div class="admin-section-title">📦 Manage Products</div>
-  <div id="adminProductList" class="admin-product-list"></div>
+  <div id="admin-sec-products" class="admin-sub-sec active">
+    <!-- Add New Product -->
+    <div class="admin-section-title">➕ Add New Product</div>
+    <div class="add-product-card">
+      <label class="field-label">Product Name <span style="color:var(--rust);">*</span></label>
+      <input class="form-input" id="new-name"  type="text" placeholder="e.g. Lemon Pickle" />
+      <label class="field-label">Price (₹) <span style="color:var(--rust);">*</span></label>
+      <input class="form-input" id="new-price" type="text" placeholder="e.g. 120" />
+      <label class="field-label">Category <span style="color:var(--rust);">*</span></label>
+      <select class="form-input" id="new-cat">
+        <option value="pickle">Pickle</option>
+        <option value="drink">Drink / Malt</option>
+        <option value="spice">Spice</option>
+        <option value="jewelry">Jewelry</option>
+        <option value="saree">Saree / Kurti</option>
+        <option value="other">Other</option>
+      </select>
+      <label class="field-label">Product Image</label>
+      <div class="img-upload-area" id="newImgArea">
+        <input type="file" accept="image/*" onchange="handleNewImg(this)" />
+        <div class="upload-icon">📷</div>
+        <div class="upload-text">Click to upload product image</div>
+      </div>
+      <button class="btn-primary" onclick="addProduct()">Add Product →</button>
+    </div>
 
-  <!-- Orders List -->
-  <div class="admin-section-title" style="margin-top:30px;">📋 Recent Orders</div>
-  <div id="adminOrdersList" class="admin-product-list"></div>
+    <!-- Manage Products -->
+    <div class="admin-section-title">📦 Manage Products</div>
+    <div id="adminProductList" class="admin-product-list"></div>
+  </div>
+
+  <div id="admin-sec-orders" class="admin-sub-sec">
+    <h3 class="admin-title">Order History (Cloud)</h3>
+    <div id="adminOrdersList" class="admin-product-grid"></div>
+  </div>
+
+  <div id="admin-sec-customers" class="admin-sub-sec">
+    <h3 class="admin-title">Customer Directory</h3>
+    <div id="adminCustomersList" class="admin-customer-grid"></div>
+  </div>
 </section>
 </main>
 
