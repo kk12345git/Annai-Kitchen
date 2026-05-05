@@ -560,7 +560,9 @@ function openModal(id) {
     document.body.style.overflow = 'hidden';
     if (id === 'authModal') {
       // Force mount Clerk UI when opening the auth modal
-      if (window.Clerk && Clerk.isReady && Clerk.isReady()) {
+      // Using a safer readiness check (Clerk.isReady can be a function or boolean)
+      const isClerkReady = window.Clerk && (typeof Clerk.isReady === 'function' ? Clerk.isReady() : Clerk.isReady);
+      if (isClerkReady) {
         mountClerkUI();
       } else {
         // Retry in a moment if not ready
@@ -1454,7 +1456,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   async function initClerk() {
     if (window.Clerk) {
-      if (!Clerk.isReady || !Clerk.isReady()) {
+      // Safer check for Clerk readiness
+      const isClerkReady = typeof Clerk.isReady === 'function' ? Clerk.isReady() : Clerk.isReady;
+      
+      if (!isClerkReady) {
         try {
           await Clerk.load({ publishableKey: clerkKey });
         } catch (e) {
@@ -1635,12 +1640,15 @@ function mountClerkUI() {
   const signInDiv = document.getElementById('clerk-signin-container');
   const signUpDiv = document.getElementById('clerk-signup-container');
   
-  if (window.Clerk && Clerk.isReady && Clerk.isReady()) {
-    // Only mount if empty
-    if (signInDiv && signInDiv.innerHTML === "") {
+  // Safer readiness check
+  const isClerkReady = window.Clerk && (typeof Clerk.isReady === 'function' ? Clerk.isReady() : Clerk.isReady);
+  
+  if (isClerkReady) {
+    // Only mount if empty to avoid double-mounting
+    if (signInDiv && signInDiv.innerHTML.trim() === "") {
       Clerk.mountSignIn(signInDiv);
     }
-    if (signUpDiv && signUpDiv.innerHTML === "") {
+    if (signUpDiv && signUpDiv.innerHTML.trim() === "") {
       Clerk.mountSignUp(signUpDiv);
     }
   } else {
