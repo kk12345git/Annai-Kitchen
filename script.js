@@ -1454,31 +1454,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   async function initClerk() {
     if (window.Clerk) {
-      try {
-        await Clerk.load({ publishableKey: clerkKey });
-        if (Clerk.user) {
+      if (!Clerk.isReady || !Clerk.isReady()) {
+        try {
+          await Clerk.load({ publishableKey: clerkKey });
+        } catch (e) {
+          console.error("Clerk Load Error:", e);
+        }
+      }
+      
+      if (Clerk.user) {
+        syncClerkUser();
+      } else {
+        mountClerkUI();
+      }
+      
+      Clerk.addListener(({ user }) => {
+        if (user) {
           syncClerkUser();
         } else {
+          currentUser = null;
+          localStorage.removeItem('ak_user');
+          document.getElementById('userBadgeWrap').style.display = 'none';
+          document.getElementById('heroBtns').style.display  = 'flex';
           mountClerkUI();
         }
-        
-        Clerk.addListener(({ user }) => {
-          if (user) {
-            syncClerkUser();
-          } else {
-            currentUser = null;
-            localStorage.removeItem('ak_user');
-            document.getElementById('userBadgeWrap').style.display = 'none';
-            document.getElementById('heroBtns').style.display  = 'flex';
-            mountClerkUI();
-          }
-        });
-      } catch (err) {
-        console.error("Clerk error:", err);
-      }
+      });
     } else {
-      // If not loaded yet, wait 200ms and try again
-      setTimeout(initClerk, 200);
+      setTimeout(initClerk, 300);
     }
   }
 
@@ -1634,14 +1636,15 @@ function mountClerkUI() {
   const signUpDiv = document.getElementById('clerk-signup-container');
   
   if (window.Clerk && Clerk.isReady && Clerk.isReady()) {
+    // Only mount if empty
     if (signInDiv && signInDiv.innerHTML === "") {
       Clerk.mountSignIn(signInDiv);
     }
     if (signUpDiv && signUpDiv.innerHTML === "") {
       Clerk.mountSignUp(signUpDiv);
     }
-  } else if (window.Clerk) {
-    // If Clerk is there but not ready, wait a bit
+  } else {
+    // Keep trying every 500ms until Clerk is ready
     setTimeout(mountClerkUI, 500);
   }
 }
