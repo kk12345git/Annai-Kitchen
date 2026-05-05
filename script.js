@@ -443,7 +443,8 @@ function googleLogin() {
   if (GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE_CLIENT_ID')) {
     showToast('🔑 [Test Mode] Google Login Simulated...');
     setTimeout(() => {
-      loginSuccess('Vendhan C', 'via Google', 'varaganfinanceinfo@gmail.com');
+      // In production, this name comes from your Google Profile
+      loginSuccess('Google User', 'via Google', 'user@gmail.com');
     }, 1500);
     return;
   }

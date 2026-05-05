@@ -143,8 +143,6 @@ body {
 .user-badge {
   background: linear-gradient(135deg, var(--gold), #b8860b);
   color: #fff;
-  font-size: 11px;
-  font-weight: 700;
   padding: 8px 16px;
   border-radius: 40px;
   display: flex;
@@ -153,6 +151,36 @@ body {
   gap: 0;
   box-shadow: 0 0 15px var(--gold-glow);
   border: 1px solid rgba(255,255,255,0.2);
+  line-height: 1.2;
+}
+.ub-top {
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ub-id {
+  font-size: 8px;
+  opacity: 0.8;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+@media (max-width: 600px) {
+  .user-badge-wrap {
+    top: 10px;
+    right: 10px;
+    flex-direction: row;
+    gap: 5px;
+  }
+  .user-badge {
+    padding: 6px 12px;
+    border-radius: 12px;
+  }
+  .ub-top { font-size: 10px; }
+  .ub-id { font-size: 7px; }
+  .hero-top-btn { padding: 5px 10px; font-size: 10px; }
 }
 
 /* ── NAV TABS ── */

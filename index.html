@@ -393,7 +393,10 @@
   </div>
   <!-- Logged-in user badge -->
   <div id="userBadgeWrap" class="user-badge-wrap" style="display:none;">
-    <div class="user-badge">👤 <span id="userNameDisplay"></span><br/><span id="userDeviceId" style="font-size:9px;opacity:0.75;letter-spacing:0.5px;"></span></div>
+    <div class="user-badge">
+      <div class="ub-top">👤 <span id="userNameDisplay"></span></div>
+      <div id="userDeviceId" class="ub-id"></div>
+    </div>
     <button class="hero-top-btn" onclick="logoutUser()">Logout</button>
   </div>
 
