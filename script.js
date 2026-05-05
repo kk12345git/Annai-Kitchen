@@ -237,7 +237,7 @@ function saveProducts(prods) {
 // ──────────────────────────────────────────────
 // SECTION NAVIGATION
 // ──────────────────────────────────────────────
-const SECTIONS = ['foods', 'jewelry', 'sarees', 'contact', 'admin'];
+const SECTIONS = ['foods', 'jewelry', 'sarees', 'tradition', 'contact', 'admin'];
 
 function showSection(id) {
   closeCart(); // Close cart when navigating
@@ -337,7 +337,7 @@ function renderGrid(gridId, prods) {
   grid.innerHTML = prods.map(p => `
     <div class="product-card" data-cat="${p.cat}">
       <div class="product-img" style="background:${p.bg};">
-        ${p.img ? `<img src="${p.img}" alt="${escapeHtml(p.name)}" />` : `<span class="emoji-fallback">${p.emoji}</span>`}
+        ${p.img ? `<img src="${p.img}" alt="${escapeHtml(p.name)} – Authentic Tamil Nadu Product" loading="lazy" />` : `<span class="emoji-fallback">${p.emoji}</span>`}
         ${p.badge ? `<span class="product-badge">${p.badge}</span>` : ''}
         ${p.cat === 'pickle' || p.cat === 'saree' ? `<div class="holo-seal" title="Verified Pure Authentic"></div>` : ''}
       </div>

@@ -3,12 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Annai's Kitchen – Homemade Foods, Jewelry & Sarees | Tamil Nadu</title>
-  <meta name="description" content="Authentic homemade foods, handcrafted jewelry & handwoven sarees from Tamil Nadu. Order fresh pickles, malts, spices and more from Annai's Kitchen. Pure, traditional, and delivered with love." />
-  <meta name="keywords" content="Annai's Kitchen, Homemade Food Tamil Nadu, Traditional Pickles, Organic Malts, Handcrafted Jewelry, Handwoven Sarees, South Indian Spices, Authentic Tamil Food, Healthy Homemade Snacks" />
+  <title>Annai's Kitchen – Authentic Homemade Foods, Kanchipuram Sarees & Temple Jewelry</title>
+  <meta name="description" content="Order authentic homemade pickles, malts, and spices. Shop traditional Kanchipuram silk sarees and handcrafted temple jewelry. Pure, traditional, and delivered fresh from Tamil Nadu." />
+  <meta name="keywords" content="Annai's Kitchen, Homemade Foods Tamil Nadu, Traditional Pickles, Kanchipuram Silk Sarees, Handcrafted Jewelry, South Indian Spices, Authentic Tamil Food, Madurai Sungudi Sarees, Temple Jewelry Online, Home Delivery Chennai, Ponneri Homemade Food" />
   <meta name="author" content="Annai's Kitchen" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://annaiskitchen.com/" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#c0392b" />
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
@@ -32,44 +34,70 @@
 
   <!-- Structured Data -->
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "name": "Annai's Kitchen",
-    "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80",
-    "@id": "https://annaiskitchen.com",
-    "url": "https://annaiskitchen.com",
-    "telephone": "+919944124864",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "Artisan Studio",
-      "addressLocality": "Tamil Nadu",
-      "addressRegion": "TN",
-      "postalCode": "600001",
-      "addressCountry": "IN"
+  [
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "Annai's Kitchen",
+      "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80",
+      "@id": "https://annaiskitchen.com",
+      "url": "https://annaiskitchen.com",
+      "telephone": "+919944124864",
+      "priceRange": "₹₹",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "No 286, Mudaliyar Street, Balaji Nagar, Anuppambattu",
+        "addressLocality": "Ponneri",
+        "addressRegion": "TN",
+        "postalCode": "601203",
+        "addressCountry": "IN"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 13.3157,
+        "longitude": 80.1471
+      },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ],
+        "opens": "09:00",
+        "closes": "21:00"
+      },
+      "sameAs": [
+        "https://wa.me/919944124864"
+      ]
     },
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": 11.127123,
-      "longitude": 78.656894
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Annai's Kitchen",
+      "url": "https://annaiskitchen.com",
+      "logo": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=200&h=200&q=80",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+919944124864",
+        "contactType": "customer service"
+      }
     },
-    "openingHoursSpecification": {
-      "@type": "OpeningHoursSpecification",
-      "dayOfWeek": [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday"
-      ],
-      "opens": "09:00",
-      "closes": "20:00"
-    },
-    "sameAs": [
-      "https://wa.me/919944124864"
-    ]
-  }
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "url": "https://annaiskitchen.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://annaiskitchen.com/?s={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  ]
   </script>
 
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -97,7 +125,7 @@
     <div id="loginForm">
       <div class="or-divider">Login with</div>
       <button class="btn-secondary" style="margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="googleLogin()">
-        <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;" alt="Google Logo" /> Continue with Google
+        <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;" alt="Google" /> Continue with Google
       </button>
       <div class="or-divider">or use phone + email</div>
       <label class="field-label">Email Address <span style="color:#aaa;font-weight:400;">(for OTP)</span></label>
@@ -125,7 +153,7 @@
       <label class="field-label">Full Name <span>*</span></label>
       <input class="form-input" id="signupName" type="text" placeholder="Your Name" />
       <button class="btn-secondary" style="margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="googleLogin()">
-        <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;" alt="Google Logo" /> Sign up with Google
+        <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;" alt="Google" /> Sign up with Google
       </button>
       <div class="or-divider">or use phone + email</div>
       <label class="field-label">Email Address <span style="color:#aaa;font-weight:400;">(for OTP)</span></label>
@@ -414,6 +442,7 @@
   <button class="tab-btn active" data-section="foods"   onclick="showSection('foods')">🍱 Foods</button>
   <button class="tab-btn"        data-section="jewelry" onclick="showSection('jewelry')">💍 Jewelry</button>
   <button class="tab-btn"        data-section="sarees"  onclick="showSection('sarees')">🥻 Sarees</button>
+  <button class="tab-btn"        data-section="tradition" onclick="showSection('tradition')">📜 Our Tradition</button>
   <button class="tab-btn"        data-section="contact" onclick="showSection('contact')">📞 Contact</button>
   <button class="tab-btn"        data-section="admin"   id="adminTabBtn" onclick="showSection('admin')" style="display:none;">⚙️ Admin</button>
   <button class="cart-nav-btn" onclick="openCart()" title="View Cart">🛒 <span class="cart-badge" id="cartBadge" style="display:none;">0</span></button>
@@ -516,6 +545,33 @@
 </section>
 
 <!-- ══════════════════════════════════════════
+     TRADITION SECTION (SEO BOOST)
+══════════════════════════════════════════ -->
+<section class="section" id="sec-tradition" aria-label="Our Tradition">
+  <div class="sec-header">
+    <div class="sec-label">Our Story</div>
+    <h2 class="sec-title">The Heart of <em>Tamil Nadu</em></h2>
+    <div class="sec-divider"></div>
+  </div>
+  <div class="tradition-content" style="max-width:900px; margin:0 auto; padding:20px; line-height:1.8; color:var(--deep);">
+    <p style="margin-bottom:20px;">
+      Welcome to <strong>Annai's Kitchen</strong>, where every product tells a story of heritage and love. Rooted in the rich soil of <strong>Tamil Nadu</strong>, we bring you the authentic taste of homemade <strong>pickles (Oorgai)</strong>, nutritious <strong>health malts</strong>, and traditional <strong>masala powders</strong> prepared using age-old recipes passed down through generations.
+    </p>
+    <p style="margin-bottom:20px;">
+      Beyond the kitchen, we celebrate the artistry of South India with our curated collection of <strong>Kanchipuram silk sarees</strong>, <strong>Madurai Sungudi cottons</strong>, and <strong>handcrafted temple jewelry</strong>. Each piece is handpicked to ensure you experience the true essence of Indian tradition and elegance.
+    </p>
+    <div class="features" style="margin-top:30px;">
+      <div class="feat"><span class="feat-icon">📍</span> Based in Anuppambattu</div>
+      <div class="feat"><span class="feat-icon">🚚</span> Shipping Across India</div>
+      <div class="feat"><span class="feat-icon">🌟</span> 100% Quality Assured</div>
+    </div>
+    <div style="margin-top:20px; text-align:center;">
+      <a href="https://www.google.com/maps/dir/?api=1&destination=13.3157,80.1471" target="_blank" class="btn-trace" style="margin:0 auto; padding:12px 24px;">📍 View on Google Maps</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
      CONTACT SECTION
 ══════════════════════════════════════════ -->
 <section class="section" id="sec-contact" aria-label="Contact">
@@ -598,8 +654,33 @@
 <!-- ══════════════════════════════════════════
      FOOTER
 ══════════════════════════════════════════ -->
-<footer class="footer">
-  Made with ❤️ by <span>Annai's Kitchen</span> &nbsp;|&nbsp; Authentic Tamil Nadu Products
+<footer class="footer" style="padding:40px 20px; text-align:center; background:rgba(20,20,25,0.98); color:#fff; border-top:1px solid var(--glass-border);">
+  <div style="max-width:1200px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:30px; text-align:left;">
+    <div>
+      <h3 style="font-family:var(--font-display); color:var(--gold); margin-bottom:15px;">Annai's Kitchen</h3>
+      <p style="font-size:13px; color:rgba(255,255,255,0.6); line-height:1.6;">
+        Authentic homemade foods, handcrafted jewelry, and handwoven sarees from the heart of Tamil Nadu. Pure tradition, delivered with love.
+      </p>
+    </div>
+    <div>
+      <h4 style="font-size:14px; color:var(--gold); margin-bottom:15px; text-transform:uppercase;">Visit Us</h4>
+      <p style="font-size:13px; color:rgba(255,255,255,0.6); line-height:1.6;">
+        No 286, Mudaliyar Street,<br>
+        Balaji Nagar, Anuppambattu,<br>
+        Tamil Nadu – 601203, India
+      </p>
+    </div>
+    <div>
+      <h4 style="font-size:14px; color:var(--gold); margin-bottom:15px; text-transform:uppercase;">Contact Info</h4>
+      <p style="font-size:13px; color:rgba(255,255,255,0.6); line-height:1.6;">
+        Phone: +91 99441 24864<br>
+        Email: alproductinfo2026@gmail.com
+      </p>
+    </div>
+  </div>
+  <div style="margin-top:40px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.1); font-size:12px; color:rgba(255,255,255,0.4);">
+    &copy; 2026 Annai's Kitchen. All rights reserved. | Traditional South Indian Homemade Food & Crafts.
+  </div>
 </footer>
 
 <!-- ══════════════════════════════════════════
@@ -610,6 +691,7 @@
     <button class="bnav-btn active" id="bnav-foods"   onclick="showSection('foods')"><span class="icon">🍱</span>Foods</button>
     <button class="bnav-btn"        id="bnav-jewelry" onclick="showSection('jewelry')"><span class="icon">💍</span>Jewelry</button>
     <button class="bnav-btn"        id="bnav-sarees"  onclick="showSection('sarees')"><span class="icon">🥻</span>Sarees</button>
+    <button class="bnav-btn"        id="bnav-tradition" onclick="showSection('tradition')"><span class="icon">📜</span>Story</button>
     <button class="bnav-btn"        onclick="openCart()"><span class="icon">🛒</span>Cart</button>
     <button class="bnav-btn"        id="bnav-contact" onclick="showSection('contact')"><span class="icon">📞</span>Contact</button>
     <button class="bnav-btn"        id="bnav-admin"   onclick="showSection('admin')" style="display:none;"><span class="icon">⚙️</span>Admin</button>
