@@ -100,7 +100,17 @@
   ]
   </script>
 
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=Mukta+Malar:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Clerk SDK -->
+  <script
+    async
+    crossorigin="anonymous"
+    data-clerk-publishable-key="REPLACE_WITH_YOUR_CLERK_PUBLISHABLE_KEY"
+    src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+    type="text/javascript"
+  ></script>
+
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link rel="stylesheet" href="style.css" />
@@ -113,10 +123,16 @@
 <div class="modal-overlay" id="authModal" role="dialog" aria-modal="true">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('authModal')">✕</button>
-    <div class="modal-title">Welcome 👋</div>
-    <div class="modal-sub">Sign in or create your account</div>
+    <div class="modal-title" data-i18n="welcome">Welcome 👋</div>
+    <div class="modal-sub" data-i18n="signinSub">Sign in or create your account</div>
 
-    <div class="auth-tabs">
+    <!-- Clerk Containers -->
+    <div id="clerk-signin-container"></div>
+    <div id="clerk-signup-container" style="display:none;"></div>
+    
+    <div id="oldAuthForms" style="display:none;">
+      <!-- Hidden old forms to avoid breaking existing code while migrating -->
+      <div class="auth-tabs">
       <button class="auth-tab active" id="tabLogin"  onclick="switchAuthTab('login')">Login</button>
       <button class="auth-tab"        id="tabSignup" onclick="switchAuthTab('signup')">Sign Up</button>
     </div>
@@ -145,7 +161,7 @@
         <p style="font-size:12px;color:#888;text-align:center;margin-bottom:8px;">OTP sent to your email/phone</p>
         <div id="otpTimer" style="font-size:11px;color:var(--rust);text-align:center;margin-bottom:14px;font-weight:600;"></div>
       </div>
-      <button class="btn-primary" id="loginBtn" onclick="requestOtp()">Send OTP</button>
+      <button class="btn-primary" id="loginBtn" onclick="requestOtp()" data-i18n="sendOtp">Send OTP</button>
     </div>
 
     <!-- SIGNUP -->
@@ -174,6 +190,7 @@
       </div>
       <button class="btn-primary" id="signupBtn" onclick="requestSignupOtp()">Send OTP</button>
     </div>
+    </div> <!-- end oldAuthForms -->
   </div>
 </div>
 
@@ -181,7 +198,7 @@
 <div class="modal-overlay" id="orderModal" role="dialog" aria-modal="true">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('orderModal')">✕</button>
-    <div class="modal-title">Place Order 🛒</div>
+    <div class="modal-title" data-i18n="placeOrder">Place Order 🛒</div>
     <div class="step-indicator">
       <div class="step-dot done" id="sdot1"></div>
       <div class="step-dot"      id="sdot2"></div>
@@ -416,7 +433,8 @@
 <div class="hero">
   <!-- Logged-out buttons -->
   <div id="heroBtns" class="hero-top-btns">
-    <button class="hero-top-btn" onclick="openModal('authModal')">🔑 Login / Sign Up</button>
+    <button class="lang-switch-btn" onclick="toggleLanguage()"><span class="icon">🌐</span> <span class="lang-btn-text">தமிழ்</span></button>
+    <button class="hero-top-btn" onclick="openModal('authModal')" data-i18n="loginBtn">🔑 Login / Sign Up</button>
     <button class="hero-top-btn" onclick="openModal('adminLoginModal')" style="opacity:0.5;font-size:11px;">Admin</button>
   </div>
   <!-- Logged-in user badge -->
@@ -428,22 +446,22 @@
     <button class="hero-top-btn" onclick="logoutUser()">Logout</button>
   </div>
 
-  <div class="hero-badge">Homemade · Handpicked · Pure</div>
-  <h1>Annai's <span>Kitchen</span></h1>
-  <div class="hero-sub">Traditional Flavours, Timeless Style</div>
-  <p class="hero-desc">Authentic homemade foods, handcrafted jewelry &amp; handwoven sarees — straight from the heart of Tamil Nadu.</p>
-  <button class="hero-cta" onclick="showSection('foods')">🛒 Shop Now</button>
+  <div class="hero-badge" data-i18n="heroBadge">Homemade · Handpicked · Pure</div>
+  <h1 data-i18n="heroTitle">Annai's <span>Kitchen</span></h1>
+  <div class="hero-sub" data-i18n="heroSub">Traditional Flavours, Timeless Style</div>
+  <p class="hero-desc" data-i18n="heroDesc">Authentic homemade foods, handcrafted jewelry &amp; handwoven sarees — straight from the heart of Tamil Nadu.</p>
+  <button class="hero-cta" onclick="showSection('foods')" data-i18n="shopNow">🛒 Shop Now</button>
 </div>
 
 <!-- ══════════════════════════════════════════
      DESKTOP TAB NAV
 ══════════════════════════════════════════ -->
 <nav class="tabs-wrap" aria-label="Main Navigation">
-  <button class="tab-btn active" data-section="foods"   onclick="showSection('foods')">🍱 Foods</button>
-  <button class="tab-btn"        data-section="jewelry" onclick="showSection('jewelry')">💍 Jewelry</button>
-  <button class="tab-btn"        data-section="sarees"  onclick="showSection('sarees')">🥻 Sarees</button>
-  <button class="tab-btn"        data-section="tradition" onclick="showSection('tradition')">📜 Our Tradition</button>
-  <button class="tab-btn"        data-section="contact" onclick="showSection('contact')">📞 Contact</button>
+  <button class="tab-btn active" data-section="foods"   onclick="showSection('foods')" data-i18n="navFoods">🍱 Foods</button>
+  <button class="tab-btn"        data-section="jewelry" onclick="showSection('jewelry')" data-i18n="navJewelry">💍 Jewelry</button>
+  <button class="tab-btn"        data-section="sarees"  onclick="showSection('sarees')" data-i18n="navSarees">🥻 Sarees</button>
+  <button class="tab-btn"        data-section="tradition" onclick="showSection('tradition')" data-i18n="navStory">📜 Our Tradition</button>
+  <button class="tab-btn"        data-section="contact" onclick="showSection('contact')" data-i18n="navContact">📞 Contact</button>
   <button class="tab-btn"        data-section="admin"   id="adminTabBtn" onclick="showSection('admin')" style="display:none;">⚙️ Admin</button>
   <button class="cart-nav-btn" onclick="openCart()" title="View Cart">🛒 <span class="cart-badge" id="cartBadge" style="display:none;">0</span></button>
 </nav>
@@ -474,21 +492,21 @@
 <div class="search-filter-bar">
   <div class="search-box">
     <span class="search-icon">🔍</span>
-    <input type="text" id="globalSearch" placeholder="Search for foods, jewelry, sarees..." oninput="handleSearch(this.value)" />
+    <input type="text" id="globalSearch" data-i18n="searchPlaceholder" placeholder="Search for foods, jewelry, sarees..." oninput="handleSearch(this.value)" />
   </div>
   <div class="sort-box">
     <select id="priceSort" onchange="handleSort(this.value)">
-      <option value="default">Sort by: Featured</option>
-      <option value="price-low">Price: Low to High</option>
-      <option value="price-high">Price: High to Low</option>
+      <option value="default" data-i18n="sortFeatured">Sort by: Featured</option>
+      <option value="price-low" data-i18n="sortLowHigh">Price: Low to High</option>
+      <option value="price-high" data-i18n="sortHighLow">Price: High to Low</option>
     </select>
   </div>
 </div>
 
 <section class="section active" id="sec-foods" aria-label="Foods">
   <div class="sec-header">
-    <div class="sec-label">Homemade Goodness</div>
-    <h2 class="sec-title">Our <em>Foods</em></h2>
+    <div class="sec-label" data-i18n="foodGoodness">Homemade Goodness</div>
+    <h2 class="sec-title" data-i18n="ourFoods">Our <em>Foods</em></h2>
     <div class="sec-divider"></div>
   </div>
 
@@ -500,11 +518,11 @@
   </div>
 
   <div class="cat-pills">
-    <button class="cat-pill active" onclick="filterFood('all', this)">All</button>
-    <button class="cat-pill" onclick="filterFood('pickle', this)">Pickles</button>
-    <button class="cat-pill" onclick="filterFood('drink',  this)">Drinks &amp; Malts</button>
-    <button class="cat-pill" onclick="filterFood('spice',  this)">Spices</button>
-    <button class="cat-pill" onclick="filterFood('other',  this)">Other</button>
+    <button class="cat-pill active" onclick="filterFood('all', this)" data-i18n="catAll">All</button>
+    <button class="cat-pill" onclick="filterFood('pickle', this)" data-i18n="catPickles">Pickles</button>
+    <button class="cat-pill" onclick="filterFood('drink',  this)" data-i18n="catDrinks">Drinks &amp; Malts</button>
+    <button class="cat-pill" onclick="filterFood('spice',  this)" data-i18n="catSpices">Spices</button>
+    <button class="cat-pill" onclick="filterFood('other',  this)" data-i18n="catOther">Other</button>
   </div>
 
   <div class="product-grid" id="foods-grid"></div>
@@ -515,8 +533,8 @@
 ══════════════════════════════════════════ -->
 <section class="section" id="sec-jewelry" aria-label="Jewelry">
   <div class="sec-header">
-    <div class="sec-label">Handcrafted Beauty</div>
-    <h2 class="sec-title">Artificial <em>Jewelry</em></h2>
+    <div class="sec-label" data-i18n="jewelryTitle">Artificial <em>Jewelry</em></div>
+    <h2 class="sec-title" data-i18n="jewelryTitle">Artificial <em>Jewelry</em></h2>
     <div class="sec-divider"></div>
   </div>
   <div class="features">
@@ -532,8 +550,8 @@
 ══════════════════════════════════════════ -->
 <section class="section" id="sec-sarees" aria-label="Sarees">
   <div class="sec-header">
-    <div class="sec-label">Woven with Love</div>
-    <h2 class="sec-title">Sarees &amp; <em>Kurtis</em></h2>
+    <div class="sec-label" data-i18n="sareesTitle">Sarees &amp; <em>Kurtis</em></div>
+    <h2 class="sec-title" data-i18n="sareesTitle">Sarees &amp; <em>Kurtis</em></h2>
     <div class="sec-divider"></div>
   </div>
   <div class="features">
@@ -549,16 +567,16 @@
 ══════════════════════════════════════════ -->
 <section class="section" id="sec-tradition" aria-label="Our Tradition">
   <div class="sec-header">
-    <div class="sec-label">Our Story</div>
-    <h2 class="sec-title">The Heart of <em>Tamil Nadu</em></h2>
+    <div class="sec-label" data-i18n="ourStory">Our Story</div>
+    <h2 class="sec-title" data-i18n="traditionTitle">The Heart of <em>Tamil Nadu</em></h2>
     <div class="sec-divider"></div>
   </div>
   <div class="tradition-content" style="max-width:900px; margin:0 auto; padding:20px; line-height:1.8; color:var(--deep);">
-    <p style="margin-bottom:20px;">
-      Welcome to <strong>Annai's Kitchen</strong>, where every product tells a story of heritage and love. Rooted in the rich soil of <strong>Tamil Nadu</strong>, we bring you the authentic taste of homemade <strong>pickles (Oorgai)</strong>, nutritious <strong>health malts</strong>, and traditional <strong>masala powders</strong> prepared using age-old recipes passed down through generations.
+    <p style="margin-bottom:20px;" data-i18n="traditionDesc1">
+      Welcome to <strong>Annai's Kitchen</strong>, where every product tells a story of heritage and love. Prepared using age-old recipes passed down through generations.
     </p>
-    <p style="margin-bottom:20px;">
-      Beyond the kitchen, we celebrate the artistry of South India with our curated collection of <strong>Kanchipuram silk sarees</strong>, <strong>Madurai Sungudi cottons</strong>, and <strong>handcrafted temple jewelry</strong>. Each piece is handpicked to ensure you experience the true essence of Indian tradition and elegance.
+    <p style="margin-bottom:20px;" data-i18n="traditionDesc2">
+      We celebrate the artistry of South India with our curated collection of Kanchipuram silk sarees and handcrafted temple jewelry.
     </p>
     <div class="features" style="margin-top:30px;">
       <div class="feat"><span class="feat-icon">📍</span> Based in Anuppambattu</div>
@@ -576,8 +594,8 @@
 ══════════════════════════════════════════ -->
 <section class="section" id="sec-contact" aria-label="Contact">
   <div class="sec-header">
-    <div class="sec-label">We'd love to hear from you</div>
-    <h2 class="sec-title">Get in <em>Touch</em></h2>
+    <div class="sec-label" data-i18n="contactTitle">Get in <em>Touch</em></div>
+    <h2 class="sec-title" data-i18n="contactTitle">Get in <em>Touch</em></h2>
     <div class="sec-divider"></div>
   </div>
   <div class="features">
@@ -588,18 +606,18 @@
   <div class="contact-card">
     <h3>Annai's Kitchen</h3>
     <p>Order your favourite homemade foods, jewelry &amp; sarees. We deliver fresh with love. Contact us on WhatsApp or call us directly!</p>
-    <a href="https://wa.me/919944124864?text=Hi%20Annai's%20Kitchen!%20I%20want%20to%20place%20an%20order%20🛍️" class="contact-btn whatsapp">💬 WhatsApp Order</a>
-    <a href="tel:+919944124864"                   class="contact-btn">📞 Call Us</a>
-    <a href="mailto:alproductinfo2026@gmail.com"  class="contact-btn" style="background:#ea4335;">📧 Email Us</a>
+    <a href="https://wa.me/919944124864?text=Hi%20Annai's%20Kitchen!%20I%20want%20to%20place%20an%20order%20🛍️" class="contact-btn whatsapp" data-i18n="waOrder">💬 WhatsApp Order</a>
+    <a href="tel:+919944124864"                   class="contact-btn" data-i18n="contactUs">📞 Call Us</a>
+    <a href="mailto:alproductinfo2026@gmail.com"  class="contact-btn" style="background:#ea4335;" data-i18n="emailUs">📧 Email Us</a>
   </div>
 
   <div style="margin-top:20px;background:#fff;border-radius:16px;padding:24px;box-shadow:var(--shadow);">
-    <div style="font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;margin-bottom:16px;color:var(--deep);">Send an Enquiry</div>
+    <div style="font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;margin-bottom:16px;color:var(--deep);" data-i18n="enquiryTitle">Send an Enquiry</div>
     <input  id="enq-name"  type="text" placeholder="Your Name"  class="form-input" />
     <input  id="enq-phone" type="tel"  placeholder="Phone Number" class="form-input" />
     <textarea id="enq-msg" placeholder="What would you like to order? (e.g. Mango Pickle x2, Khadi Saree...)" rows="4" class="form-input"></textarea>
-    <button onclick="sendEnquiry('wa')"   class="btn-primary" style="background:#25d366;margin-bottom:10px;">💬 Send via WhatsApp</button>
-    <button onclick="sendEnquiry('mail')" class="btn-primary">📧 Send via Email</button>
+    <button onclick="sendEnquiry('wa')"   class="btn-primary" style="background:#25d366;margin-bottom:10px;" data-i18n="sendWA">💬 Send via WhatsApp</button>
+    <button onclick="sendEnquiry('mail')" class="btn-primary" data-i18n="sendMail">📧 Send via Email</button>
   </div>
 </section>
 
@@ -688,12 +706,13 @@
 ══════════════════════════════════════════ -->
 <nav class="bottom-nav" aria-label="Mobile Navigation">
   <div class="bottom-nav-inner">
-    <button class="bnav-btn active" id="bnav-foods"   onclick="showSection('foods')"><span class="icon">🍱</span>Foods</button>
-    <button class="bnav-btn"        id="bnav-jewelry" onclick="showSection('jewelry')"><span class="icon">💍</span>Jewelry</button>
-    <button class="bnav-btn"        id="bnav-sarees"  onclick="showSection('sarees')"><span class="icon">🥻</span>Sarees</button>
-    <button class="bnav-btn"        id="bnav-tradition" onclick="showSection('tradition')"><span class="icon">📜</span>Story</button>
-    <button class="bnav-btn"        onclick="openCart()"><span class="icon">🛒</span>Cart</button>
-    <button class="bnav-btn"        id="bnav-contact" onclick="showSection('contact')"><span class="icon">📞</span>Contact</button>
+    <button class="bnav-btn"        onclick="toggleLanguage()"><span class="icon">🌐</span> <span class="lang-btn-text">தமிழ்</span></button>
+    <button class="bnav-btn active" id="bnav-foods"   onclick="showSection('foods')" data-i18n="navFoods"><span class="icon">🍱</span>Foods</button>
+    <button class="bnav-btn"        id="bnav-jewelry" onclick="showSection('jewelry')" data-i18n="navJewelry"><span class="icon">💍</span>Jewelry</button>
+    <button class="bnav-btn"        id="bnav-sarees"  onclick="showSection('sarees')" data-i18n="navSarees"><span class="icon">🥻</span>Sarees</button>
+    <button class="bnav-btn"        id="bnav-tradition" onclick="showSection('tradition')" data-i18n="navStory"><span class="icon">📜</span>Story</button>
+    <button class="bnav-btn"        onclick="openCart()" data-i18n="navCart"><span class="icon">🛒</span>Cart</button>
+    <button class="bnav-btn"        id="bnav-contact" onclick="showSection('contact')" data-i18n="navContact"><span class="icon">📞</span>Contact</button>
     <button class="bnav-btn"        id="bnav-admin"   onclick="showSection('admin')" style="display:none;"><span class="icon">⚙️</span>Admin</button>
   </div>
 </nav>

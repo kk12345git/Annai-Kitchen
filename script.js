@@ -22,6 +22,166 @@ const FORMSPREE_ID = 'xdabegrq';
 const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
 // ── Intersection Observer for Scroll Reveals ──
+// ──────────────────────────────────────────────
+// TRANSLATIONS (i18n)
+// ──────────────────────────────────────────────
+const i18n = {
+  en: {
+    langBtn: "தமிழ்",
+    heroBadge: "Homemade · Handpicked · Pure",
+    heroTitle: "Annai's <span>Kitchen</span>",
+    heroSub: "Traditional Flavours, Timeless Style",
+    heroDesc: "Authentic homemade foods, handcrafted jewelry & handwoven sarees — straight from the heart of Tamil Nadu.",
+    shopNow: "🛒 Shop Now",
+    navFoods: "🍱 Foods",
+    navJewelry: "💍 Jewelry",
+    navSarees: "🥻 Sarees",
+    navStory: "📜 Our Tradition",
+    navContact: "📞 Contact",
+    navAdmin: "⚙️ Admin",
+    navCart: "Cart",
+    searchPlaceholder: "Search for foods, jewelry, sarees...",
+    sortFeatured: "Sort by: Featured",
+    sortLowHigh: "Price: Low to High",
+    sortHighLow: "Price: High to Low",
+    foodGoodness: "Homemade Goodness",
+    ourFoods: "Our <em>Foods</em>",
+    catAll: "All",
+    catPickles: "Pickles",
+    catDrinks: "Drinks & Malts",
+    catSpices: "Spices",
+    catOther: "Other",
+    jewelryTitle: "Artificial <em>Jewelry</em>",
+    sareesTitle: "Sarees & <em>Kurtis</em>",
+    traditionTitle: "The Heart of <em>Tamil Nadu</em>",
+    contactTitle: "Get in <em>Touch</em>",
+    loginBtn: "🔑 Login / Sign Up",
+    logout: "Logout",
+    welcome: "Welcome 👋",
+    signinSub: "Sign in or create your account",
+    phoneLabel: "Mobile Number",
+    emailLabel: "Email Address",
+    sendOtp: "Send OTP",
+    enterOtp: "Enter OTP",
+    verify: "Verify",
+    placeOrder: "Place Order 🛒",
+    deliveryDetails: "Delivery Details",
+    reviewOrder: "Review Order",
+    successTitle: "Order Placed!",
+    successSub: "Your order has been received. Our team will contact you shortly.",
+    cartTitle: "🛒 My Cart",
+    cartTotal: "Total",
+    checkout: "Place Order →",
+    ourStory: "Our Story",
+    traditionDesc1: "Welcome to <strong>Annai's Kitchen</strong>, where every product tells a story of heritage and love. Prepared using age-old recipes passed down through generations.",
+    traditionDesc2: "We celebrate the artistry of South India with our curated collection of Kanchipuram silk sarees and handcrafted temple jewelry.",
+    traceOrigin: "📍 Trace Origin",
+    orderNow: "Order Now",
+    contactUs: "📞 Call Us",
+    waOrder: "💬 WhatsApp Order",
+    emailUs: "📧 Email Us",
+    enquiryTitle: "Send an Enquiry",
+    sendWA: "💬 Send via WhatsApp",
+    sendMail: "📧 Send via Email"
+  },
+  ta: {
+    langBtn: "English",
+    heroBadge: "வீட்டுத் தயாரிப்பு · தரம் · தூய்மை",
+    heroTitle: "அன்னையின் <span>சமையல்</span>",
+    heroSub: "பாரம்பரிய சுவை, மாறாத தரம்",
+    heroDesc: "தமிழகத்தின் பாரம்பரிய வீட்டுத் தயாரிப்பு உணவுகள், கைவினை அணிகலன்கள் மற்றும் கைத்தறி புடவைகள்.",
+    shopNow: "🛒 இப்போதே வாங்குங்கள்",
+    navFoods: "🍱 உணவுகள்",
+    navJewelry: "💍 அணிகலன்கள்",
+    navSarees: "🥻 புடவைகள்",
+    navStory: "📜 நமது கதை",
+    navContact: "📞 தொடர்பு",
+    navAdmin: "⚙️ அட்மின்",
+    navCart: "கூடை",
+    searchPlaceholder: "தேடுங்கள்...",
+    sortFeatured: "வரிசைப்படுத்து: சிறப்பு",
+    sortLowHigh: "விலை: குறைவு முதல் அதிகம்",
+    sortHighLow: "விலை: அதிகம் முதல் குறைவு",
+    foodGoodness: "வீட்டுச் சுவை",
+    ourFoods: "எமது <em>உணவுகள்</em>",
+    catAll: "அனைத்தும்",
+    catPickles: "ஊறுகாய்கள்",
+    catDrinks: "பானங்கள் & மால்ட்",
+    catSpices: "மசாலாக்கள்",
+    catOther: "இதர",
+    jewelryTitle: "செயற்கை <em>அணிகலன்கள்</em>",
+    sareesTitle: "புடவைகள் & <em>குர்த்திகள்</em>",
+    traditionTitle: "தமிழகத்தின் <em>இதயம்</em>",
+    contactTitle: "தொடர்பு <em>கொள்ளுங்கள்</em>",
+    loginBtn: "🔑 லாகின் / பதிவு",
+    logout: "வெளியேறு",
+    welcome: "வரவேற்கிறோம் 👋",
+    signinSub: "உங்கள் கணக்கில் நுழையுங்கள்",
+    phoneLabel: "மொபைல் எண்",
+    emailLabel: "மின்னஞ்சல் முகவரி",
+    sendOtp: "OTP அனுப்புக",
+    enterOtp: "OTP-யை உள்ளிடவும்",
+    verify: "சரிபார்",
+    placeOrder: "ஆர்டர் செய் 🛒",
+    deliveryDetails: "டெலிவரி விபரங்கள்",
+    reviewOrder: "சரிபார்",
+    successTitle: "ஆர்டர் செய்யப்பட்டது!",
+    successSub: "உங்கள் ஆர்டர் பெறப்பட்டது. எமது குழு விரைவில் உங்களைத் தொடர்பு கொள்ளும்.",
+    cartTitle: "🛒 எனது கூடை",
+    cartTotal: "மொத்தம்",
+    checkout: "ஆர்டர் செய் →",
+    ourStory: "எமது கதை",
+    traditionDesc1: "<strong>அன்னையின் சமையலுக்கு</strong> உங்களை வரவேற்கிறோம். ஒவ்வொரு தயாரிப்பும் ஒரு பாரம்பரியக் கதையைச் சொல்லும். தலைமுறை தலைமுறையாகப் பின்பற்றப்படும் சமையல் குறிப்புகளுடன் தயாரிக்கப்படுகிறது.",
+    traditionDesc2: "காஞ்சிபுரம் பட்டுப் புடவைகள் மற்றும் கைவினை அணிகலன்கள் மூலம் தென்னிந்தியாவின் கலைத்திறனை நாங்கள் கொண்டாடுகிறோம்.",
+    traceOrigin: "📍 விபரங்களை அறி",
+    orderNow: "ஆர்டர் செய்",
+    contactUs: "📞 எங்களை அழைக்க",
+    waOrder: "💬 வாட்ஸ்அப் ஆர்டர்",
+    emailUs: "📧 மின்னஞ்சல் அனுப்புக",
+    enquiryTitle: "விசாரணை செய்க",
+    sendWA: "💬 வாட்ஸ்அப் மூலம் அனுப்புக",
+    sendMail: "📧 மின்னஞ்சல் மூலம் அனுப்புக"
+  }
+};
+
+let currentLang = localStorage.getItem('ak_lang') || 'en';
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('ak_lang', lang);
+  document.documentElement.lang = lang;
+  updateTranslations();
+  renderProducts(); // Re-render for nameTa support
+  renderCart();
+  showToast(lang === 'ta' ? 'மொழி மாற்றப்பட்டது: தமிழ்' : 'Language switched to English');
+}
+
+function toggleLanguage() {
+  setLanguage(currentLang === 'en' ? 'ta' : 'en');
+}
+
+function updateTranslations() {
+  const elements = document.querySelectorAll('[data-i18n]');
+  elements.forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const translation = i18n[currentLang][key];
+    if (translation) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        el.placeholder = translation;
+      } else if (el.tagName === 'SELECT') {
+        // Handle dropdowns specifically if needed
+      } else {
+        el.innerHTML = translation;
+      }
+    }
+  });
+  
+  // Update toggle button text if exists
+  document.querySelectorAll('.lang-btn-text').forEach(el => {
+    el.textContent = i18n[currentLang].langBtn;
+  });
+}
+
 const revealObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
@@ -66,7 +226,7 @@ function addToCart(productId, openNow = false) {
   if (!prod) return;
   const cart = getCart();
   const ex   = cart.find(c=>c.id===productId);
-  if (ex) { ex.qty+=1; } else { cart.push({id:prod.id,name:prod.name,price:prod.price,qty:1,emoji:prod.emoji,img:prod.img||null,cat:prod.cat}); }
+  if (ex) { ex.qty+=1; } else { cart.push({id:prod.id,name:prod.name,nameTa:prod.nameTa||'',price:prod.price,qty:1,emoji:prod.emoji,img:prod.img||null,cat:prod.cat}); }
   saveCart(cart); updateCartBadge();
   showToast(`"${prod.name}" added to cart! 🛒`);
   if (openNow) openCart();
@@ -130,7 +290,10 @@ function renderCart() {
     const sub=isNaN(n)?'Enquire':'₹'+(n*item.qty);
     return `<div class="cart-item">
       <div class="cart-item-thumb">${item.img?`<img src="${item.img}" alt=""/>`:`<span>${item.emoji}</span>`}</div>
-      <div class="cart-item-info"><div class="cart-item-name">${escapeHtml(item.name)}</div><div class="cart-item-price">${escapeHtml(item.price)} × ${item.qty} = <b>${sub}</b></div></div>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${escapeHtml((currentLang === 'ta' && item.nameTa) ? item.nameTa : item.name)}</div>
+        <div class="cart-item-price">${escapeHtml(item.price)} × ${item.qty} = <b>${sub}</b></div>
+      </div>
       <div class="cart-item-controls">
         <button class="qty-btn" onclick="updateCartQty(${item.id},-1)">−</button>
         <span class="qty-val">${item.qty}</span>
@@ -342,12 +505,12 @@ function renderGrid(gridId, prods) {
         ${p.cat === 'pickle' || p.cat === 'saree' ? `<div class="holo-seal" title="Verified Pure Authentic"></div>` : ''}
       </div>
       <div class="product-body">
-        <div class="product-name">${escapeHtml(p.name)}</div>
-        ${p.nameTa ? `<div class="product-name-ta">${escapeHtml(p.nameTa)}</div>` : ''}
+        <div class="product-name">${escapeHtml((currentLang === 'ta' && p.nameTa) ? p.nameTa : p.name)}</div>
+        ${(p.nameTa && currentLang === 'en') ? `<div class="product-name-ta">${escapeHtml(p.nameTa)}</div>` : ''}
         <div class="product-price">${escapeHtml(p.price)}</div>
-        <button class="btn-trace" onclick="traceOrigin(${p.id})">📍 Trace Origin</button>
+        <button class="btn-trace" onclick="traceOrigin(${p.id})" data-i18n="traceOrigin">${i18n[currentLang].traceOrigin}</button>
       </div>
-      <button class="btn-order-now" data-product-id="${p.id}">Order Now</button>
+      <button class="btn-order-now" data-product-id="${p.id}" data-i18n="orderNow">${i18n[currentLang].orderNow}</button>
     </div>
   `).join('');
 
@@ -637,19 +800,7 @@ function showUserBadge() {
   if (did) did.textContent = 'ID: ' + (currentUser.deviceId || getDeviceId());
 }
 
-function logoutUser() {
-  currentUser = null;
-  localStorage.removeItem('ak_user');
-  
-  // Clear cart on logout
-  saveCart([]);
-  updateCartBadge();
-  renderCart();
-  
-  document.getElementById('heroBtns').style.display      = 'flex';
-  document.getElementById('userBadgeWrap').style.display = 'none';
-  showToast('Logged out & Cart cleared! 🧹');
-}
+// Old logoutUser removed (replaced by Clerk logout at end of file)
 
 // ──────────────────────────────────────────────
 // ADMIN LOGIN
@@ -1260,4 +1411,77 @@ function updateInvoicePreview() {
   document.getElementById('p-inv-sub').textContent   = money(sub);
   document.getElementById('p-inv-del').textContent   = money(delivery);
   document.getElementById('p-inv-total').textContent = money(total);
+}
+
+// ──────────────────────────────────────────────
+// INITIALIZATION
+// ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // Init translations
+  updateTranslations();
+  document.documentElement.lang = currentLang;
+  
+  // Clerk Init
+  const clerkKey = "REPLACE_WITH_YOUR_CLERK_PUBLISHABLE_KEY"; // Placeholder
+  if (window.Clerk) {
+    try {
+      await Clerk.load();
+      if (Clerk.user) {
+        syncClerkUser();
+      } else {
+        mountClerkUI();
+      }
+      
+      Clerk.addListener(({ user }) => {
+        if (user) {
+          syncClerkUser();
+        } else {
+          currentUser = null;
+          localStorage.removeItem('ak_user');
+          document.getElementById('userBadge').style.display = 'none';
+          document.getElementById('heroBtns').style.display  = 'flex';
+          mountClerkUI();
+        }
+      });
+    } catch (err) {
+      console.error("Clerk error:", err);
+    }
+  }
+
+  // Existing init
+  initGoogleAuth(); // This can be removed or kept as fallback
+  updateCartBadge();
+  renderProducts();
+  initReveals();
+});
+
+function mountClerkUI() {
+  const signInDiv = document.getElementById('clerk-signin-container');
+  const signUpDiv = document.getElementById('clerk-signup-container');
+  if (signInDiv) Clerk.mountSignIn(signInDiv);
+  if (signUpDiv) Clerk.mountSignUp(signUpDiv);
+}
+
+function syncClerkUser() {
+  const user = Clerk.user;
+  currentUser = {
+    id: user.id,
+    name: user.fullName || user.primaryEmailAddress.emailAddress.split('@')[0],
+    email: user.primaryEmailAddress.emailAddress,
+    photo: user.imageUrl
+  };
+  localStorage.setItem('ak_user', JSON.stringify(currentUser));
+  showUserBadge();
+  closeModal('authModal');
+}
+
+function logoutUser() {
+  if (window.Clerk) {
+    Clerk.signOut();
+  } else {
+    currentUser = null;
+    localStorage.removeItem('ak_user');
+    document.getElementById('userBadge').style.display = 'none';
+    document.getElementById('heroBtns').style.display  = 'flex';
+  }
 }

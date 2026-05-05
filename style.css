@@ -16,7 +16,30 @@ html { scroll-behavior: smooth; }
   --blush: #f8f0e3;
   --font-main: 'Outfit', sans-serif;
   --font-display: 'Playfair Display', serif;
+  --font-tamil: 'Mukta Malar', sans-serif;
 }
+
+[lang="ta"] {
+  font-family: var(--font-tamil);
+  line-height: 1.6;
+}
+
+.lang-switch-btn {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lang-switch-btn:hover { background: var(--gold); color: var(--obsidian); border-color: var(--gold); }
+.lang-switch-btn span { font-size: 11px; opacity: 0.6; }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
