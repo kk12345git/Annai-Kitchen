@@ -82,7 +82,9 @@ const i18n = {
     emailUs: "📧 Email Us",
     enquiryTitle: "Send an Enquiry",
     sendWA: "💬 Send via WhatsApp",
-    sendMail: "📧 Send via Email"
+    sendMail: "📧 Send via Email",
+    clerkWait: "Initializing Secure Login...",
+    useStandard: "Use Standard Email/Phone Login"
   },
   ta: {
     langBtn: "English",
@@ -140,7 +142,9 @@ const i18n = {
     emailUs: "📧 மின்னஞ்சல் அனுப்புக",
     enquiryTitle: "விசாரணை செய்க",
     sendWA: "💬 வாட்ஸ்அப் மூலம் அனுப்புக",
-    sendMail: "📧 மின்னஞ்சல் மூலம் அனுப்புக"
+    sendMail: "📧 மின்னஞ்சல் மூலம் அனுப்புக",
+    clerkWait: "பாதுகாப்பான லாகின் தயாராகிறது...",
+    useStandard: "சாதாரண ஈமெயில்/மொபைல் லாகின் பயன்படுத்தவும்"
   }
 };
 
@@ -1422,10 +1426,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.documentElement.lang = currentLang;
   
   // Clerk Init
-  const clerkKey = "REPLACE_WITH_YOUR_CLERK_PUBLISHABLE_KEY"; // Placeholder
+  const clerkKey = "pk_test_YW1wbGUtZWxmLTUwLmNsZXJrLmFjY291bnRzLmRldiQ"; 
+  
   if (window.Clerk) {
     try {
-      await Clerk.load();
+      await Clerk.load({ publishableKey: clerkKey });
       if (Clerk.user) {
         syncClerkUser();
       } else {
@@ -1473,6 +1478,12 @@ function syncClerkUser() {
   localStorage.setItem('ak_user', JSON.stringify(currentUser));
   showUserBadge();
   closeModal('authModal');
+}
+
+function useManualLogin() {
+  document.getElementById('clerk-signin-container').style.display = 'none';
+  document.getElementById('oldAuthForms').style.display = 'block';
+  showToast('Switched to standard login mode! 🔑');
 }
 
 function logoutUser() {
