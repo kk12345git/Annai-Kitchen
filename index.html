@@ -126,6 +126,7 @@
     <!-- Clerk Containers -->
     <div id="clerk-signin-container"></div>
     <div id="clerk-signup-container" style="display:none;"></div>
+    <div id="clerk-user-button"></div>
 
     <div style="text-align:center; margin-top:10px;">
       <a href="#" onclick="useManualLogin();return false;" style="font-size:11px; color:var(--gold); opacity:0.7; text-decoration:none;">Problems signing in? Use Standard Login</a>
@@ -737,11 +738,11 @@
 ══════════════════════════════════════════ -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<!-- Clerk SDK Moved to End -->
+<!-- Clerk SDK - Domain Specific for UI Components -->
 <script
   crossorigin="anonymous"
   data-clerk-publishable-key="pk_test_YW1wbGUtZWxmLTUwLmNsZXJrLmFjY291bnRzLmRldiQ"
-  src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+  src="https://ample-elf-50.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
   type="text/javascript"
 ></script>
 
