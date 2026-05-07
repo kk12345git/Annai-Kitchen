@@ -129,7 +129,7 @@
     <div id="clerk-user-button"></div>
 
     <div style="text-align:center; margin-top:10px;">
-      <a href="#" onclick="useManualLogin();return false;" style="font-size:11px; color:var(--gold); opacity:0.7; text-decoration:none;">Problems signing in? Use Standard Login</a>
+      <a href="#" onclick="useManualLogin();return false;" style="font-size:11px; color:var(--gold); opacity:0.7; text-decoration:none;">Problems signing in? Use Standard Email Login</a>
     </div>
     
     <div id="oldAuthForms" style="display:none;">
@@ -145,11 +145,9 @@
       <button class="btn-secondary" style="margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="googleLogin()">
         <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;" alt="Google" /> Continue with Google
       </button>
-      <div class="or-divider">or use phone + email</div>
+      <div class="or-divider">or use email</div>
       <label class="field-label">Email Address <span style="color:#aaa;font-weight:400;">(for OTP)</span></label>
       <input class="form-input" id="loginEmail" type="email" placeholder="you@gmail.com" />
-      <label class="field-label">Mobile Number <span>*</span></label>
-      <input class="form-input" id="loginPhone" type="tel" placeholder="+91 9999999999" />
       <div id="otpLoginSection" style="display:none;">
         <label class="field-label">Enter OTP <span>*</span></label>
         <div class="otp-row">
@@ -173,11 +171,9 @@
       <button class="btn-secondary" style="margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="googleLogin()">
         <img src="https://www.google.com/favicon.ico" style="width:16px;height:16px;" alt="Google" /> Sign up with Google
       </button>
-      <div class="or-divider">or use phone + email</div>
+      <div class="or-divider">or use email</div>
       <label class="field-label">Email Address <span style="color:#aaa;font-weight:400;">(for OTP)</span></label>
       <input class="form-input" id="signupEmail" type="email" placeholder="you@gmail.com" />
-      <label class="field-label">Mobile Number <span>*</span></label>
-      <input class="form-input" id="signupPhone" type="tel" placeholder="+91 9999999999" />
       <div id="otpSignupSection" style="display:none;">
         <label class="field-label">Enter OTP <span>*</span></label>
         <div class="otp-row">
