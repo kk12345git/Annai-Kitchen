@@ -84,7 +84,7 @@ const i18n = {
     sendWA: "💬 Send via WhatsApp",
     sendMail: "📧 Send via Email",
     clerkWait: "Initializing Secure Login...",
-    useStandard: "Use Standard Email/Phone Login"
+    useStandard: "Use Standard Email Login"
   },
   ta: {
     langBtn: "English",
@@ -144,7 +144,7 @@ const i18n = {
     sendWA: "💬 வாட்ஸ்அப் மூலம் அனுப்புக",
     sendMail: "📧 மின்னஞ்சல் மூலம் அனுப்புக",
     clerkWait: "பாதுகாப்பான லாகின் தயாராகிறது...",
-    useStandard: "சாதாரண ஈமெயில்/மொபைல் லாகின் பயன்படுத்தவும்"
+    useStandard: "சாதாரண ஈமெயில் லாகின் பயன்படுத்தவும்"
   }
 };
 
@@ -739,8 +739,7 @@ function generateOtp() { return Math.floor(100000+Math.random()*900000).toString
 
 function requestOtp() {
   const email = document.getElementById('loginEmail')?.value.trim()||'';
-  const phone = document.getElementById('loginPhone').value.trim();
-  if (!phone) { showToast('Enter your phone number!'); return; }
+  if (!email) { showToast('Enter your email address!'); return; }
   
   // Start 30s timer
   let timeLeft = 30;
@@ -814,7 +813,7 @@ function verifyOtp() {
         btn.textContent = 'Send OTP';
         btn.disabled = false;
         otpStore = {otp:null, expires:null};
-        loginSuccess('Customer', phone, email);
+        loginSuccess('Customer', '', email);
       } else {
         btn.textContent = originalText;
         btn.disabled = false;
@@ -826,8 +825,7 @@ function verifyOtp() {
 
 function requestSignupOtp() {
   const email=document.getElementById('signupEmail')?.value.trim()||'';
-  const phone=document.getElementById('signupPhone').value.trim();
-  if (!phone) { showToast('Enter your phone number!'); return; }
+  if (!email) { showToast('Enter your email address!'); return; }
   const otp=generateOtp();
   sotpStore={otp,expires:Date.now()+5*60*1000};
   const btn=document.getElementById('signupBtn');
@@ -865,7 +863,7 @@ function verifySignupOtp() {
         btn.textContent = 'Send OTP';
         btn.disabled = false;
         sotpStore = {otp:null, expires:null};
-        loginSuccess(name, phone, email);
+        loginSuccess(name, '', email);
       } else {
         btn.textContent = originalText;
         btn.disabled = false;
@@ -1545,36 +1543,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   async function initClerk() {
     if (window.Clerk) {
-      // Safer check for Clerk readiness
-      const isClerkReady = typeof Clerk.isReady === 'function' ? Clerk.isReady() : Clerk.isReady;
-      
-      if (!isClerkReady) {
-        try {
-          await Clerk.load({ publishableKey: clerkKey });
-        } catch (e) {
-          console.error("Clerk Load Error:", e);
-        }
-      }
-      
-      if (Clerk.user) {
-        syncClerkUser();
-      } else {
-        mountClerkUI();
-      }
-      
-      Clerk.addListener(({ user }) => {
-        if (user) {
+      try {
+        // The script with data-clerk-publishable-key handles initial boot, 
+        // but we need to ensure load() is completed for the UI components.
+        await Clerk.load({ publishableKey: clerkKey });
+        
+        if (Clerk.user) {
           syncClerkUser();
         } else {
-          currentUser = null;
-          localStorage.removeItem('ak_user');
-          document.getElementById('userBadgeWrap').style.display = 'none';
-          document.getElementById('heroBtns').style.display  = 'flex';
+          // If not logged in, ensure UI is ready for modal opening
           mountClerkUI();
         }
-      });
+        
+        Clerk.addListener(({ user }) => {
+          if (user) {
+            syncClerkUser();
+          } else {
+            currentUser = null;
+            localStorage.removeItem('ak_user');
+            document.getElementById('userBadgeWrap').style.display = 'none';
+            document.getElementById('heroBtns').style.display  = 'flex';
+            // Also clear the user button container if it was mounted
+            const ub = document.getElementById('clerk-user-button');
+            if (ub) ub.innerHTML = '';
+            mountClerkUI();
+          }
+        });
+      } catch (e) {
+        console.error("Clerk initialization failed:", e);
+      }
     } else {
-      setTimeout(initClerk, 300);
+      // Retry if Clerk script hasn't arrived
+      setTimeout(initClerk, 100);
     }
   }
 
@@ -1785,10 +1785,7 @@ function mountClerkUI() {
   const signInDiv = document.getElementById('clerk-signin-container');
   const signUpDiv = document.getElementById('clerk-signup-container');
   
-  // Safer readiness check
-  const isClerkReady = window.Clerk && (typeof Clerk.isReady === 'function' ? Clerk.isReady() : Clerk.isReady);
-  
-  if (isClerkReady) {
+  if (window.Clerk && Clerk.isReady && Clerk.isReady()) {
     // Only mount if empty to avoid double-mounting
     if (signInDiv && signInDiv.innerHTML.trim() === "") {
       Clerk.mountSignIn(signInDiv);
@@ -1796,24 +1793,40 @@ function mountClerkUI() {
     if (signUpDiv && signUpDiv.innerHTML.trim() === "") {
       Clerk.mountSignUp(signUpDiv);
     }
-  } else {
-    // Keep trying every 500ms until Clerk is ready
-    setTimeout(mountClerkUI, 500);
+    
+    // Also mount the User Button in the header if logged in
+    const userButtonDiv = document.getElementById('clerk-user-button');
+    if (userButtonDiv && Clerk.user && userButtonDiv.innerHTML.trim() === "") {
+      Clerk.mountUserButton(userButtonDiv);
+    }
+  } else if (window.Clerk) {
+    // Retry shortly if Clerk is there but not ready
+    setTimeout(mountClerkUI, 200);
   }
 }
 
 function syncClerkUser() {
   const user = Clerk.user;
+  if (!user) return;
+  
   currentUser = {
     id: user.id,
-    name: user.fullName || user.primaryEmailAddress.emailAddress.split('@')[0],
-    email: user.primaryEmailAddress.emailAddress,
-    photo: user.imageUrl
+    name: user.fullName || user.primaryEmailAddress?.emailAddress?.split('@')[0] || 'Customer',
+    email: user.primaryEmailAddress?.emailAddress || '',
+    photo: user.imageUrl,
+    deviceId: getDeviceId() // Preserve device tracking
   };
+  
   localStorage.setItem('ak_user', JSON.stringify(currentUser));
   upsertCustomer(currentUser); // Save to cloud
   showUserBadge();
   closeModal('authModal');
+  
+  // Also ensure User Button is mounted
+  const ub = document.getElementById('clerk-user-button');
+  if (ub && ub.innerHTML.trim() === "") {
+    Clerk.mountUserButton(ub);
+  }
 }
 
 function useManualLogin() {
@@ -1823,12 +1836,17 @@ function useManualLogin() {
 }
 
 function logoutUser() {
-  if (window.Clerk) {
-    Clerk.signOut();
+  if (window.Clerk && Clerk.user) {
+    Clerk.signOut().then(() => {
+      window.location.reload(); // Hard refresh to clear all states reliably
+    });
   } else {
     currentUser = null;
     localStorage.removeItem('ak_user');
-    document.getElementById('userBadge').style.display = 'none';
-    document.getElementById('heroBtns').style.display  = 'flex';
+    const badge = document.getElementById('userBadgeWrap');
+    if (badge) badge.style.display = 'none';
+    const btns = document.getElementById('heroBtns');
+    if (btns) btns.style.display = 'flex';
+    showToast('Logged out!');
   }
 }
