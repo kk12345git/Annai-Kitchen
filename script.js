@@ -390,7 +390,7 @@ const defaultProducts = [
 ];
 
 // ──────────────────────────────────────────────
-// PRODUCT STORAGE (localStorage)
+// PRODUCT STORAGE (localStorage + Cloud Sync)
 // ──────────────────────────────────────────────
 function getProducts() {
   const stored = localStorage.getItem('ak_products');
@@ -399,6 +399,77 @@ function getProducts() {
 
 function saveProducts(prods) {
   localStorage.setItem('ak_products', JSON.stringify(prods));
+}
+
+// ── Cloud Sync Logic ──
+async function loadProductsFromCloud() {
+  if (!sb) return;
+  
+  // Show a subtle loading state on the grids
+  const grids = ['foods-grid', 'jewelry-grid', 'sarees-grid'];
+  grids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.innerHTML === '') el.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;opacity:0.5;">Syncing with cloud...</div>';
+  });
+
+  try {
+    const { data, error } = await sb
+      .from('products')
+      .select('*')
+      .order('id', { ascending: true });
+    
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      const mapped = data.map(p => ({
+        id: p.id,
+        name: p.name,
+        nameTa: p.name_ta || '',
+        price: p.price,
+        cat: p.cat,
+        badge: p.badge || '',
+        emoji: p.emoji || '📦',
+        bg: p.bg || 'linear-gradient(135deg,#f5f5f5,#eeeeee)',
+        origin: p.origin || '',
+        img: p.img || null
+      }));
+      saveProducts(mapped);
+      renderProducts();
+      console.log('Products synced from cloud ✅');
+    }
+  } catch (err) {
+    console.warn('Cloud product load failed:', err);
+  }
+}
+
+async function saveProductToCloud(product) {
+  if (!sb) return;
+  const { error } = await sb
+    .from('products')
+    .upsert({
+      id: product.id,
+      name: product.name,
+      name_ta: product.nameTa,
+      price: product.price,
+      cat: product.cat,
+      badge: product.badge,
+      emoji: product.emoji,
+      bg: product.bg,
+      origin: product.origin,
+      img: product.img
+    }, { onConflict: 'id' });
+  
+  if (error) console.error('Cloud Save Error:', error);
+}
+
+async function deleteProductFromCloud(id) {
+  if (!sb) return;
+  const { error } = await sb
+    .from('products')
+    .delete()
+    .eq('id', id);
+  
+  if (error) console.error('Cloud Delete Error:', error);
 }
 
 // ──────────────────────────────────────────────
@@ -873,7 +944,7 @@ function handleNewImg(input) {
   reader.readAsDataURL(file);
 }
 
-function addProduct() {
+async function addProduct() {
   const name  = document.getElementById('new-name').value.trim();
   const price = document.getElementById('new-price').value.trim();
   const cat   = document.getElementById('new-cat').value;
@@ -883,7 +954,7 @@ function addProduct() {
   // FIX: safe max id when products array could be empty
   const newId = prods.length > 0 ? Math.max(...prods.map(p => p.id)) + 1 : 1;
 
-  prods.push({
+  const newProd = {
     id: newId,
     name,
     nameTa: '',
@@ -893,10 +964,15 @@ function addProduct() {
     emoji: '📦',
     bg:    'linear-gradient(135deg,#f5f5f5,#eeeeee)',
     img:   newImgData || null
-  });
+  };
+
+  prods.push(newProd);
   saveProducts(prods);
   renderProducts();
   renderAdminList();
+
+  // Sync to cloud
+  await saveProductToCloud(newProd);
 
   // Reset form
   document.getElementById('new-name').value  = '';
@@ -1020,7 +1096,7 @@ function handleEditImg(input) {
   reader.readAsDataURL(file);
 }
 
-function saveEditProduct() {
+async function saveEditProduct() {
   const idx   = parseInt(document.getElementById('edit-idx').value);
   const name  = document.getElementById('edit-name').value.trim();
   const price = document.getElementById('edit-price').value.trim();
@@ -1036,9 +1112,12 @@ function saveEditProduct() {
   renderAdminList();
   closeModal('editProductModal');
   showToast('Product updated! ✅');
+
+  // Sync to cloud
+  await saveProductToCloud(prods[idx]);
 }
 
-function deleteProduct(idx) {
+async function deleteProduct(idx) {
   if (!confirm('Delete this product?')) return;
   const prods   = getProducts();
   const removed = prods.splice(idx, 1)[0];
@@ -1046,6 +1125,9 @@ function deleteProduct(idx) {
   renderProducts();
   renderAdminList();
   showToast(`"${removed.name}" deleted!`);
+
+  // Sync to cloud
+  await deleteProductFromCloud(removed.id);
 }
 
 // ──────────────────────────────────────────────
@@ -1137,6 +1219,13 @@ ${itemLines}
 ---
 Annai's Kitchen Order System`;
 
+  // CLEAN CART: Remove large image data before saving to DB/localStorage
+  // This prevents "Payload Too Large" errors when placing orders
+  const cleanCart = cart.map(i => {
+    const { img, ...rest } = i; // Strip out the 'img' field (base64)
+    return rest;
+  });
+
   // Save order to localStorage for admin tracking
   const orderData = {
     id: orderId,
@@ -1145,7 +1234,7 @@ Annai's Kitchen Order System`;
     phone2,
     address,
     deviceId,
-    items: cart,
+    items: cleanCart,
     total: getCartTotal(),
     date: new Date().toISOString(),
     status: 'new'
@@ -1496,6 +1585,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateCartBadge();
   renderProducts();
   initReveals();
+
+  // Load products from cloud after initial render (for speed)
+  loadProductsFromCloud();
 });
 
 
@@ -1544,6 +1636,59 @@ async function saveOrderToCloud(order) {
     }]);
   
   if (error) console.error('Supabase Order Error:', error);
+}
+
+async function renderAdminOrdersFromCloud() {
+  const list = document.getElementById('adminOrdersList');
+  if (!list || !sb) return;
+
+  list.innerHTML = '<div style="text-align:center;padding:20px;opacity:0.6;">Loading orders from cloud...</div>';
+
+  try {
+    const { data, error } = await sb
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      list.innerHTML = '<p style="text-align:center;color:#888;padding:20px 0;">No orders found in cloud.</p>';
+      return;
+    }
+
+    list.innerHTML = data.map(order => {
+      // Items are stored as JSONB array in Supabase
+      const items = Array.isArray(order.items) ? order.items : [];
+      const itemsText = items.map(i => `${i.name} × ${i.qty}`).join(', ');
+      const date = new Date(order.created_at).toLocaleString();
+      
+      return `
+        <div class="admin-product-item" style="flex-direction:column;align-items:flex-start;position:relative;">
+          <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+            <div style="font-weight:700;color:var(--gold);font-size:14px;">Order #${order.order_id}</div>
+            <button class="btn-edit" style="padding:5px 10px;font-size:11px;border-radius:6px;" onclick="openInvoiceGenerator('${order.order_id}')">📄 Invoice</button>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:10px;">${date}</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="background:var(--gold-glow);color:var(--gold);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;">👤 ${escapeHtml(order.customer_name)}</div>
+            <div style="background:rgba(255,255,255,0.05);color:#fff;padding:4px 10px;border-radius:20px;font-size:11px;">📱 ${order.phone}</div>
+          </div>
+          <div style="font-size:12px;line-height:1.6;color:rgba(255,255,255,0.8);border-left:2px solid var(--gold);padding-left:10px;margin:5px 0 10px;">
+            ${escapeHtml(itemsText)}
+          </div>
+          <div style="display:flex;justify-content:space-between;width:100%;align-items:center;border-top:1px solid var(--glass-border);padding-top:10px;">
+            <div style="font-size:11px;color:rgba(255,255,255,0.4);">Address: ${escapeHtml(order.address)}</div>
+            <div style="font-weight:800;color:#fff;font-size:15px;">₹${order.total}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Cloud Orders Error:', err);
+    list.innerHTML = '<p style="text-align:center;color:var(--rust);padding:20px 0;">Error loading cloud orders. Ensure SQL setup is done.</p>';
+  }
 }
 
 // ──────────────────────────────────────────────
