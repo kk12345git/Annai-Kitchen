@@ -403,7 +403,10 @@ function saveProducts(prods) {
 
 // ── Cloud Sync Logic ──
 async function loadProductsFromCloud() {
-  if (!sb) return;
+  if (!sb) {
+    updateCloudStatus('error', 'Supabase Not Loaded');
+    return;
+  }
   
   // Show a subtle loading state on the grids
   const grids = ['foods-grid', 'jewelry-grid', 'sarees-grid'];
@@ -418,8 +421,17 @@ async function loadProductsFromCloud() {
       .select('*')
       .order('id', { ascending: true });
     
-    if (error) throw error;
+    if (error) {
+      if (error.code === 'PGRST116' || error.message.includes('not found')) {
+        updateCloudStatus('warning', 'Table Missing (Run SQL)');
+      } else {
+        updateCloudStatus('error', 'Sync Failed');
+      }
+      throw error;
+    }
     
+    updateCloudStatus('success', 'Cloud Connected');
+
     if (data && data.length > 0) {
       const mapped = data.map(p => ({
         id: p.id,
@@ -440,6 +452,13 @@ async function loadProductsFromCloud() {
   } catch (err) {
     console.warn('Cloud product load failed:', err);
   }
+}
+
+function updateCloudStatus(type, msg) {
+  const el = document.getElementById('cloud-status');
+  if (!el) return;
+  const colors = { success: '#00ff88', warning: '#ffcc00', error: '#ff4d00' };
+  el.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:${colors[type]}; box-shadow: 0 0 5px ${colors[type]};"></span> ${msg}`;
 }
 
 async function saveProductToCloud(product) {
