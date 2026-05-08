@@ -239,7 +239,19 @@
       <p style="color:#888;font-size:14px;line-height:1.7;margin-bottom:20px;">
         Your order has been received. Our team will contact you shortly on your phone number via WhatsApp and email.
       </p>
-      <button class="btn-primary" onclick="closeModal('orderModal')">Continue Shopping</button>
+      <button class="btn-primary" onclick="closeModal('orderModal'); openTrackOrder();">Track My Orders</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRACK ORDER MODAL -->
+<div class="modal-overlay" id="trackOrderModal" role="dialog" aria-modal="true">
+  <div class="modal-box" style="max-width:500px;">
+    <button class="modal-close" onclick="closeModal('trackOrderModal')">✕</button>
+    <div class="modal-title">Track My Orders 📦</div>
+    <div class="modal-sub">Real-time status of your purchases</div>
+    <div id="myOrdersList" class="my-orders-list">
+      <div class="loading-spinner">Syncing with kitchen...</div>
     </div>
   </div>
 </div>
@@ -441,6 +453,7 @@
       <div class="ub-top">👤 <span id="userNameDisplay"></span></div>
       <div id="userDeviceId" class="ub-id"></div>
     </div>
+    <button class="hero-top-btn" onclick="openTrackOrder()" style="background:var(--rust);">Track Order</button>
     <button class="hero-top-btn" onclick="logoutUser()">Logout</button>
   </div>
 

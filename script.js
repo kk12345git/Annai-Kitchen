@@ -209,6 +209,7 @@ let editImgData = null;
 let otpStore    = { otp:null, expires:null };
 let sotpStore   = { otp:null, expires:null };
 let orders      = JSON.parse(localStorage.getItem('ak_orders')||'[]'); // Store all orders
+let allProducts = []; // Global state for products from Supabase
 let currentInvoiceItems = []; // State for invoice generator
 
 // ── Device ID ──
@@ -393,13 +394,144 @@ const defaultProducts = [
 // PRODUCT STORAGE (localStorage)
 // ──────────────────────────────────────────────
 function getProducts() {
-  const stored = localStorage.getItem('ak_products');
-  return stored ? JSON.parse(stored) : defaultProducts;
+  return allProducts.length > 0 ? allProducts : defaultProducts;
 }
 
-function saveProducts(prods) {
-  localStorage.setItem('ak_products', JSON.stringify(prods));
+// Fetch products from Supabase
+async function fetchProducts() {
+  const grid = document.getElementById('productGrid');
+  if (grid) grid.innerHTML = '<div class="loading-spinner"></div>';
+  
+  if (!sb) return defaultProducts;
+  
+  try {
+    const { data, error } = await sb
+      .from('products')
+      .select('*')
+      .order('id', { ascending: true });
+      
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      allProducts = data;
+      renderProducts();
+    } else {
+      allProducts = [];
+      renderProducts();
+    }
+  } catch (err) {
+    console.error('Fetch products error:', err);
+    showToast('Offline mode: Loading local products');
+    allProducts = defaultProducts;
+    renderProducts();
+  }
 }
+
+// Real-time subscription for products
+function subscribeToProducts() {
+  if (!sb) return;
+  sb.channel('public:products')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, payload => {
+      console.log('Product change received!', payload);
+      fetchProducts(); // Refresh the list
+    })
+    .subscribe();
+}
+
+async function addProduct() {
+  const name  = document.getElementById('new-name').value.trim();
+  const price = document.getElementById('new-price').value.trim();
+  const cat   = document.getElementById('new-cat').value;
+  if (!name || !price) { showToast('Please fill name and price!'); return; }
+
+  const priceStr = price.startsWith('₹') ? price : `₹${price}`;
+  
+  if (!sb) {
+    showToast('Backend not connected!');
+    return;
+  }
+
+  const { error } = await sb
+    .from('products')
+    .insert([{
+      name,
+      nameTa: '',
+      price: priceStr,
+      cat,
+      badge: 'New',
+      emoji: '📦',
+      bg: 'linear-gradient(135deg,#f5f5f5,#eeeeee)',
+      img: newImgData || null,
+      origin: 'Annai Kitchen Artisan Studio'
+    }]);
+
+  if (error) {
+    showToast('Error adding product: ' + error.message);
+    return;
+  }
+
+  // Reset form
+  document.getElementById('new-name').value  = '';
+  document.getElementById('new-price').value = '';
+  newImgData = null;
+  const area = document.getElementById('newImgArea');
+  area.querySelector('.upload-icon').style.display = '';
+  area.querySelector('.upload-text').style.display = '';
+  const prev = area.querySelector('.preview-img');
+  if (prev) prev.remove();
+
+  showToast(`"${name}" added successfully! ✅`);
+}
+
+async function saveEditProduct() {
+  const idx   = parseInt(document.getElementById('edit-idx').value);
+  const name  = document.getElementById('edit-name').value.trim();
+  const price = document.getElementById('edit-price').value.trim();
+  if (!name || !price) { showToast('Fill all fields!'); return; }
+
+  const prod = allProducts[idx];
+  if (!prod) return;
+
+  const priceStr = price.startsWith('₹') ? price : `₹${price}`;
+  
+  if (!sb) return;
+
+  const { error } = await sb
+    .from('products')
+    .update({
+      name,
+      price: priceStr,
+      img: editImgData || prod.img
+    })
+    .eq('id', prod.id);
+
+  if (error) {
+    showToast('Error updating product: ' + error.message);
+    return;
+  }
+
+  closeModal('editProductModal');
+  showToast('Product updated! ✅');
+}
+
+async function deleteProduct(idx) {
+  if (!confirm('Delete this product?')) return;
+  const prod = allProducts[idx];
+  if (!prod || !sb) return;
+
+  const { error } = await sb
+    .from('products')
+    .delete()
+    .eq('id', prod.id);
+
+  if (error) {
+    showToast('Error deleting product: ' + error.message);
+    return;
+  }
+
+  showToast(`"${prod.name}" deleted!`);
+}
+
 
 // ──────────────────────────────────────────────
 // SECTION NAVIGATION
@@ -871,44 +1003,6 @@ function handleNewImg(input) {
   reader.readAsDataURL(file);
 }
 
-function addProduct() {
-  const name  = document.getElementById('new-name').value.trim();
-  const price = document.getElementById('new-price').value.trim();
-  const cat   = document.getElementById('new-cat').value;
-  if (!name || !price) { showToast('Please fill name and price!'); return; }
-
-  const prods = getProducts();
-  // FIX: safe max id when products array could be empty
-  const newId = prods.length > 0 ? Math.max(...prods.map(p => p.id)) + 1 : 1;
-
-  prods.push({
-    id: newId,
-    name,
-    nameTa: '',
-    price:  price.startsWith('₹') ? price : `₹${price}`,
-    cat,
-    badge: 'New',
-    emoji: '📦',
-    bg:    'linear-gradient(135deg,#f5f5f5,#eeeeee)',
-    img:   newImgData || null
-  });
-  saveProducts(prods);
-  renderProducts();
-  renderAdminList();
-
-  // Reset form
-  document.getElementById('new-name').value  = '';
-  document.getElementById('new-price').value = '';
-  newImgData = null;
-  const area = document.getElementById('newImgArea');
-  area.querySelector('.upload-icon').style.display = '';
-  area.querySelector('.upload-text').style.display = '';
-  const prev = area.querySelector('.preview-img');
-  if (prev) prev.remove();
-
-  showToast(`"${name}" added successfully! ✅`);
-}
-
 function renderAdminList() {
   const prods = getProducts();
   const list  = document.getElementById('adminProductList');
@@ -933,42 +1027,8 @@ function renderAdminList() {
     </div>
   `).join('');
   
-  // Also render orders
-  renderAdminOrders();
-}
-
-// Render orders in admin panel
-function renderAdminOrders() {
-  const ordersList = document.getElementById('adminOrdersList');
-  if (!ordersList) return;
-  
-  // Use the global orders array instead of re-parsing
-  const savedOrders = orders;
-  
-  if (savedOrders.length === 0) {
-    ordersList.innerHTML = '<p style="text-align:center;color:#888;padding:20px 0;">No orders yet.</p>';
-    return;
-  }
-  
-  // Show latest orders first
-  const recentOrders = savedOrders.slice(-10).reverse();
-  
-  ordersList.innerHTML = recentOrders.map(order => {
-    const itemsText = order.items.map(i => `${i.name} × ${i.qty}`).join(', ');
-    const date = new Date(order.date).toLocaleString();
-    return `
-      <div class="admin-product-item" style="flex-direction:column;align-items:flex-start;">
-        <div style="display:flex;justify-content:space-between;width:100%;">
-          <div style="font-weight:600;color:var(--rust);">Order #${order.id}</div>
-          <button class="btn-edit" style="padding:4px 8px;font-size:11px;" onclick="openInvoiceGenerator('${order.id}')">📄 Invoice</button>
-        </div>
-        <div style="font-size:12px;color:#666;">${date}</div>
-        <div style="margin:8px 0;">${escapeHtml(order.customer)} | ${order.phone1}</div>
-        <div style="font-size:12px;">${escapeHtml(itemsText)}</div>
-        <div style="margin-top:4px;font-weight:600;">Total: ₹${order.total}</div>
-      </div>
-    `;
-  }).join('');
+  // Also render orders from cloud
+  renderAdminOrdersFromCloud();
 }
 
 function openEditProduct(idx) {
@@ -1016,34 +1076,6 @@ function handleEditImg(input) {
     prev.src = editImgData;
   };
   reader.readAsDataURL(file);
-}
-
-function saveEditProduct() {
-  const idx   = parseInt(document.getElementById('edit-idx').value);
-  const name  = document.getElementById('edit-name').value.trim();
-  const price = document.getElementById('edit-price').value.trim();
-  if (!name || !price) { showToast('Fill all fields!'); return; }
-
-  const prods = getProducts();
-  prods[idx].name  = name;
-  prods[idx].price = price.startsWith('₹') ? price : `₹${price}`;
-  if (editImgData) prods[idx].img = editImgData;
-
-  saveProducts(prods);
-  renderProducts();
-  renderAdminList();
-  closeModal('editProductModal');
-  showToast('Product updated! ✅');
-}
-
-function deleteProduct(idx) {
-  if (!confirm('Delete this product?')) return;
-  const prods   = getProducts();
-  const removed = prods.splice(idx, 1)[0];
-  saveProducts(prods);
-  renderProducts();
-  renderAdminList();
-  showToast(`"${removed.name}" deleted!`);
 }
 
 // ──────────────────────────────────────────────
@@ -1315,7 +1347,11 @@ function sendEnquiry(method) {
 // ──────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   getDeviceId(); // generate device ID on first visit
-  renderProducts();
+  
+  // Initial fetch and subscribe
+  fetchProducts();
+  subscribeToProducts();
+  
   updateCartBadge();
 
   // Restore logged-in user from localStorage
@@ -1540,11 +1576,87 @@ async function saveOrderToCloud(order) {
       address: order.address,
       phone: order.phone1,
       device_id: order.deviceId,
+      clerk_id: currentUser?.id || null,
+      status: 'new',
       created_at: new Date().toISOString()
     }]);
   
   if (error) console.error('Supabase Order Error:', error);
 }
+
+// ──────────────────────────────────────────────
+// REAL-TIME ORDER TRACKING
+// ──────────────────────────────────────────────
+let orderSubscription = null;
+
+function openTrackOrder() {
+  if (!currentUser) {
+    showToast('Please login to track your orders! 🔑');
+    openModal('authModal');
+    return;
+  }
+  
+  renderMyOrders();
+  openModal('trackOrderModal');
+  
+  // Subscribe to user's orders
+  if (orderSubscription) orderSubscription.unsubscribe();
+  
+  if (sb) {
+    orderSubscription = sb.channel('user-orders')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'orders',
+        filter: currentUser.id ? `clerk_id=eq.${currentUser.id}` : `device_id=eq.${getDeviceId()}`
+      }, payload => {
+        console.log('Order update received!', payload);
+        renderMyOrders();
+        showToast(`Order status updated to: ${payload.new.status.toUpperCase()}! 📦`);
+      })
+      .subscribe();
+  }
+}
+
+async function renderMyOrders() {
+  const list = document.getElementById('myOrdersList');
+  if (!list || !sb) return;
+  
+  const filterCol = currentUser.id ? 'clerk_id' : 'device_id';
+  const filterVal = currentUser.id ? currentUser.id : getDeviceId();
+
+  const { data, error } = await sb
+    .from('orders')
+    .select('*')
+    .eq(filterCol, filterVal)
+    .order('created_at', { ascending: false });
+
+  if (error || !data) {
+    list.innerHTML = '<p>Failed to load orders.</p>';
+    return;
+  }
+
+  if (data.length === 0) {
+    list.innerHTML = '<p style="text-align:center;padding:20px;">You haven\'t placed any orders yet.</p>';
+    return;
+  }
+
+  list.innerHTML = data.map(order => {
+    const items = order.items.map(i => `${i.name} x${i.qty}`).join(', ');
+    return `
+      <div class="order-tracking-card">
+        <div class="ot-header">
+          <div class="ot-id">Order #${order.order_id}</div>
+          <div class="status-badge status-${order.status}">${order.status}</div>
+        </div>
+        <div class="ot-items">${escapeHtml(items)}</div>
+        <div class="ot-total">Total: ₹${order.total}</div>
+        <div style="font-size:10px; color:#888; margin-top:8px;">${new Date(order.created_at).toLocaleString()}</div>
+      </div>
+    `;
+  }).join('');
+}
+
 
 // ──────────────────────────────────────────────
 // ADMIN TAB MANAGEMENT
@@ -1602,7 +1714,7 @@ async function renderAdminOrdersFromCloud() {
   const list = document.getElementById('adminOrdersList');
   if (!list || !sb) return;
   
-  list.innerHTML = '<div class="loading-spinner">Loading cloud orders...</div>';
+  list.innerHTML = '<div class="loading-spinner"></div>';
   
   const { data, error } = await sb
     .from('orders')
@@ -1610,12 +1722,12 @@ async function renderAdminOrdersFromCloud() {
     .order('created_at', { ascending: false });
     
   if (error) {
-    list.innerHTML = '<p>Failed to load cloud orders.</p>';
+    list.innerHTML = '<div class="empty-state"><p>Failed to load orders.</p></div>';
     return;
   }
   
   if (data.length === 0) {
-    list.innerHTML = '<p>No orders found in cloud database.</p>';
+    list.innerHTML = '<div class="empty-state"><p>No orders yet.</p></div>';
     return;
   }
   
@@ -1625,7 +1737,15 @@ async function renderAdminOrdersFromCloud() {
       <div class="admin-product-item" style="flex-direction:column;align-items:flex-start;">
         <div style="display:flex;justify-content:space-between;width:100%;">
           <div style="font-weight:600;color:var(--rust);">Order #${order.order_id}</div>
-          <button class="btn-edit" style="padding:4px 8px;font-size:11px;" onclick="openInvoiceGenerator('${order.order_id}')">📄 Invoice</button>
+          <div style="display:flex; gap:8px;">
+            <select class="admin-status-select" onchange="updateOrderStatus('${order.order_id}', this.value)">
+              <option value="new" ${order.status === 'new' ? 'selected' : ''}>New</option>
+              <option value="preparing" ${order.status === 'preparing' ? 'selected' : ''}>Preparing</option>
+              <option value="shipped" ${order.status === 'shipped' ? 'selected' : ''}>Shipped</option>
+              <option value="delivered" ${order.status === 'delivered' ? 'selected' : ''}>Delivered</option>
+            </select>
+            <button class="btn-edit" style="padding:4px 8px;font-size:11px;" onclick="openInvoiceGenerator('${order.order_id}')">📄 Invoice</button>
+          </div>
         </div>
         <div style="font-size:12px;color:#666;">${new Date(order.created_at).toLocaleString()}</div>
         <div style="margin:8px 0;">${escapeHtml(order.customer_name)} | ${order.phone}</div>
@@ -1635,6 +1755,21 @@ async function renderAdminOrdersFromCloud() {
     `;
   }).join('');
 }
+
+async function updateOrderStatus(orderId, newStatus) {
+  if (!sb) return;
+  const { error } = await sb
+    .from('orders')
+    .update({ status: newStatus })
+    .eq('order_id', orderId);
+
+  if (error) {
+    showToast('Error updating status: ' + error.message);
+  } else {
+    showToast(`Order ${orderId} updated to ${newStatus.toUpperCase()}! ✅`);
+  }
+}
+
 
 function mountClerkUI() {
   const signInDiv = document.getElementById('clerk-signin-container');
