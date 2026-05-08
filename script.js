@@ -389,12 +389,11 @@ const defaultProducts = [
   { id:15, name:'Mangalagiri Kurtis',   nameTa:'',                        price:'Enquire', cat:'saree',   badge:'',        emoji:'👗', bg:'linear-gradient(135deg,#fce4ec,#f8bbd0)',   origin:'Traditional Looms, Mangalagiri', img:null },
 ];
 
-// ──────────────────────────────────────────────
-// PRODUCT STORAGE (localStorage + Cloud Sync)
-// ──────────────────────────────────────────────
+let allProducts = []; // Global state for all products
+
 function getProducts() {
-  const stored = localStorage.getItem('ak_products');
-  return stored ? JSON.parse(stored) : defaultProducts;
+  // Priority: 1. Cloud data, 2. Default data
+  return allProducts.length > 0 ? allProducts : defaultProducts;
 }
 
 // Fetch products from Supabase
@@ -643,7 +642,9 @@ function filterAndSort(prods, cat = 'all') {
 // RENDER PRODUCTS
 // ──────────────────────────────────────────────
 function renderProducts() {
+  // Use the global state which is updated by fetchProducts()
   const prods = getProducts();
+  
   renderGrid('foods-grid',   filterAndSort(prods.filter(p => ['pickle','drink','spice','other'].includes(p.cat)), foodCategory));
   renderGrid('jewelry-grid', filterAndSort(prods.filter(p => p.cat === 'jewelry')));
   renderGrid('sarees-grid',  filterAndSort(prods.filter(p => p.cat === 'saree')));
