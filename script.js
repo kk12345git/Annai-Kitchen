@@ -397,43 +397,27 @@ function getProducts() {
   return stored ? JSON.parse(stored) : defaultProducts;
 }
 
-function saveProducts(prods) {
-  localStorage.setItem('ak_products', JSON.stringify(prods));
-}
-
-// ── Cloud Sync Logic ──
-async function loadProductsFromCloud() {
+// Fetch products from Supabase
+async function fetchProducts() {
   if (!sb) {
-    updateCloudStatus('error', 'Supabase Not Loaded');
+    console.warn('Supabase not initialized, using defaults');
+    allProducts = defaultProducts;
+    renderProducts();
     return;
   }
   
-  // Show a subtle loading state on the grids
-  const grids = ['foods-grid', 'jewelry-grid', 'sarees-grid'];
-  grids.forEach(id => {
-    const el = document.getElementById(id);
-    if (el && el.innerHTML === '') el.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;opacity:0.5;">Syncing with cloud...</div>';
-  });
+  updateCloudStatus('info', 'Syncing...');
 
   try {
     const { data, error } = await sb
       .from('products')
       .select('*')
       .order('id', { ascending: true });
+      
+    if (error) throw error;
     
-    if (error) {
-      if (error.code === 'PGRST116' || error.message.includes('not found')) {
-        updateCloudStatus('warning', 'Table Missing (Run SQL)');
-      } else {
-        updateCloudStatus('error', 'Sync Failed');
-      }
-      throw error;
-    }
-    
-    updateCloudStatus('success', 'Cloud Connected');
-
     if (data && data.length > 0) {
-      const mapped = data.map(p => ({
+      allProducts = data.map(p => ({
         id: p.id,
         name: p.name,
         nameTa: p.name_ta || '',
@@ -445,50 +429,134 @@ async function loadProductsFromCloud() {
         origin: p.origin || '',
         img: p.img || null
       }));
-      saveProducts(mapped);
-      renderProducts();
-      console.log('Products synced from cloud ✅');
+      updateCloudStatus('success', 'Cloud Connected');
+    } else {
+      allProducts = defaultProducts;
+      updateCloudStatus('warning', 'Using Defaults');
     }
+    renderProducts();
   } catch (err) {
-    console.warn('Cloud product load failed:', err);
+    console.error('Fetch products error:', err);
+    updateCloudStatus('error', 'Sync Failed');
+    allProducts = defaultProducts;
+    renderProducts();
   }
 }
 
 function updateCloudStatus(type, msg) {
   const el = document.getElementById('cloud-status');
   if (!el) return;
-  const colors = { success: '#00ff88', warning: '#ffcc00', error: '#ff4d00' };
+  const colors = { success: '#00ff88', warning: '#ffcc00', error: '#ff4d00', info: '#00ccff' };
   el.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:${colors[type]}; box-shadow: 0 0 5px ${colors[type]};"></span> ${msg}`;
 }
 
-async function saveProductToCloud(product) {
+function subscribeToProducts() {
   if (!sb) return;
-  const { error } = await sb
-    .from('products')
-    .upsert({
-      id: product.id,
-      name: product.name,
-      name_ta: product.nameTa,
-      price: product.price,
-      cat: product.cat,
-      badge: product.badge,
-      emoji: product.emoji,
-      bg: product.bg,
-      origin: product.origin,
-      img: product.img
-    }, { onConflict: 'id' });
-  
-  if (error) console.error('Cloud Save Error:', error);
+  sb.channel('public:products')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, payload => {
+      console.log('Product change received!', payload);
+      fetchProducts();
+    })
+    .subscribe();
 }
 
-async function deleteProductFromCloud(id) {
+async function addProduct() {
+  const name  = document.getElementById('new-name').value.trim();
+  const price = document.getElementById('new-price').value.trim();
+  const cat   = document.getElementById('new-cat').value;
+  if (!name || !price) { showToast('Please fill name and price!'); return; }
+
+  const priceStr = price.startsWith('₹') ? price : `₹${price}`;
+  
+  if (!sb) {
+    showToast('Backend not connected!');
+    return;
+  }
+
+  const { error } = await sb
+    .from('products')
+    .insert([{
+      name,
+      name_ta: '',
+      price: priceStr,
+      cat,
+      badge: 'New',
+      emoji: '📦',
+      bg: 'linear-gradient(135deg,#f5f5f5,#eeeeee)',
+      img: newImgData || null,
+      origin: 'Annai Kitchen Artisan Studio'
+    }]);
+
+  if (error) {
+    showToast('Error adding product: ' + error.message);
+    return;
+  }
+
+  // Reset form
+  document.getElementById('new-name').value  = '';
+  document.getElementById('new-price').value = '';
+  newImgData = null;
+  const area = document.getElementById('newImgArea');
+  if (area) {
+    area.querySelector('.upload-icon').style.display = '';
+    area.querySelector('.upload-text').style.display = '';
+    const prev = area.querySelector('.preview-img');
+    if (prev) prev.remove();
+  }
+
+  showToast(`"${name}" added successfully! ✅`);
+  fetchProducts();
+}
+
+async function saveEditProduct() {
+  const idx   = parseInt(document.getElementById('edit-idx').value);
+  const name  = document.getElementById('edit-name').value.trim();
+  const price = document.getElementById('edit-price').value.trim();
+  if (!name || !price) { showToast('Fill all fields!'); return; }
+
+  const prod = allProducts[idx];
+  if (!prod) return;
+
+  const priceStr = price.startsWith('₹') ? price : `₹${price}`;
+  
   if (!sb) return;
+
+  const { error } = await sb
+    .from('products')
+    .update({
+      name,
+      price: priceStr,
+      img: editImgData || prod.img
+    })
+    .eq('id', prod.id);
+
+  if (error) {
+    showToast('Error updating product: ' + error.message);
+    return;
+  }
+
+  closeModal('editProductModal');
+  showToast('Product updated! ✅');
+  fetchProducts();
+}
+
+async function deleteProduct(idx) {
+  if (!confirm('Delete this product?')) return;
+  const prod = allProducts[idx];
+  if (!prod || !sb) return;
+
   const { error } = await sb
     .from('products')
     .delete()
-    .eq('id', id);
-  
-  if (error) console.error('Cloud Delete Error:', error);
+    .eq('id', prod.id);
+
+  if (error) {
+    showToast('Error deleting product: ' + error.message);
+    return;
+  }
+
+  showToast(`"${prod.name}" deleted!`);
+  fetchProducts();
 }
 
 // ──────────────────────────────────────────────
@@ -580,6 +648,11 @@ function renderProducts() {
   renderGrid('jewelry-grid', filterAndSort(prods.filter(p => p.cat === 'jewelry')));
   renderGrid('sarees-grid',  filterAndSort(prods.filter(p => p.cat === 'saree')));
   initReveals(); // Re-init reveals for new grid items
+  
+  // If admin is active, refresh the admin list too
+  if (isAdmin && document.getElementById('sec-admin')?.classList.contains('active')) {
+    renderAdminList();
+  }
 }
 
 function renderGrid(gridId, prods) {
@@ -961,48 +1034,6 @@ function handleNewImg(input) {
   reader.readAsDataURL(file);
 }
 
-async function addProduct() {
-  const name  = document.getElementById('new-name').value.trim();
-  const price = document.getElementById('new-price').value.trim();
-  const cat   = document.getElementById('new-cat').value;
-  if (!name || !price) { showToast('Please fill name and price!'); return; }
-
-  const prods = getProducts();
-  // FIX: safe max id when products array could be empty
-  const newId = prods.length > 0 ? Math.max(...prods.map(p => p.id)) + 1 : 1;
-
-  const newProd = {
-    id: newId,
-    name,
-    nameTa: '',
-    price:  price.startsWith('₹') ? price : `₹${price}`,
-    cat,
-    badge: 'New',
-    emoji: '📦',
-    bg:    'linear-gradient(135deg,#f5f5f5,#eeeeee)',
-    img:   newImgData || null
-  };
-
-  prods.push(newProd);
-  saveProducts(prods);
-  renderProducts();
-  renderAdminList();
-
-  // Sync to cloud
-  await saveProductToCloud(newProd);
-
-  // Reset form
-  document.getElementById('new-name').value  = '';
-  document.getElementById('new-price').value = '';
-  newImgData = null;
-  const area = document.getElementById('newImgArea');
-  area.querySelector('.upload-icon').style.display = '';
-  area.querySelector('.upload-text').style.display = '';
-  const prev = area.querySelector('.preview-img');
-  if (prev) prev.remove();
-
-  showToast(`"${name}" added successfully! ✅`);
-}
 
 function renderAdminList() {
   const prods = getProducts();
@@ -1113,39 +1144,6 @@ function handleEditImg(input) {
   reader.readAsDataURL(file);
 }
 
-async function saveEditProduct() {
-  const idx   = parseInt(document.getElementById('edit-idx').value);
-  const name  = document.getElementById('edit-name').value.trim();
-  const price = document.getElementById('edit-price').value.trim();
-  if (!name || !price) { showToast('Fill all fields!'); return; }
-
-  const prods = getProducts();
-  prods[idx].name  = name;
-  prods[idx].price = price.startsWith('₹') ? price : `₹${price}`;
-  if (editImgData) prods[idx].img = editImgData;
-
-  saveProducts(prods);
-  renderProducts();
-  renderAdminList();
-  closeModal('editProductModal');
-  showToast('Product updated! ✅');
-
-  // Sync to cloud
-  await saveProductToCloud(prods[idx]);
-}
-
-async function deleteProduct(idx) {
-  if (!confirm('Delete this product?')) return;
-  const prods   = getProducts();
-  const removed = prods.splice(idx, 1)[0];
-  saveProducts(prods);
-  renderProducts();
-  renderAdminList();
-  showToast(`"${removed.name}" deleted!`);
-
-  // Sync to cloud
-  await deleteProductFromCloud(removed.id);
-}
 
 // ──────────────────────────────────────────────
 // ORDER FLOW
@@ -1606,7 +1604,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initReveals();
 
   // Load products from cloud after initial render (for speed)
-  loadProductsFromCloud();
+  fetchProducts();
 });
 
 
