@@ -204,12 +204,15 @@ function initReveals() {
 
 let isAdmin     = false;
 let currentUser = null; // { name, phone, email, deviceId }
-let newImgData  = null;
-let editImgData = null;
+let newImgData  = []; 
+let editImgData = []; 
 let otpStore    = { otp:null, expires:null };
 let sotpStore   = { otp:null, expires:null };
+let activeProduct = null;
+let activeColor   = '';
 let orders      = JSON.parse(localStorage.getItem('ak_orders')||'[]'); // Store all orders
 let currentInvoiceItems = []; // State for invoice generator
+let currentDetailIdx = 0; // State for product detail slider
 
 // ── Device ID ──
 function getDeviceId() {
@@ -225,24 +228,31 @@ function getDeviceId() {
 function getCart()      { const s=localStorage.getItem('ak_cart'); return s?JSON.parse(s):[]; }
 function saveCart(c)    { localStorage.setItem('ak_cart',JSON.stringify(c)); }
 
-function addToCart(productId, openNow = false) {
+function addToCart(productId, openNow = false, color = '') {
   const prod = getProducts().find(p=>p.id===productId);
   if (!prod) return;
   const cart = getCart();
-  const ex   = cart.find(c=>c.id===productId);
-  if (ex) { ex.qty+=1; } else { cart.push({id:prod.id,name:prod.name,nameTa:prod.nameTa||'',price:prod.price,qty:1,emoji:prod.emoji,img:prod.img||null,cat:prod.cat}); }
+  const ex   = cart.find(c=>c.id===productId && c.selectedColor === color);
+  if (ex) { ex.qty+=1; } else { cart.push({id:prod.id,name:prod.name,nameTa:prod.nameTa||'',price:prod.price,qty:1,emoji:prod.emoji,img:prod.img||null,cat:prod.cat,selectedColor:color}); }
   saveCart(cart); updateCartBadge();
   showToast(`"${prod.name}" added to cart! 🛒`);
   if (openNow) openCart();
 }
 
-function removeFromCart(id) { saveCart(getCart().filter(c=>c.id!==id)); renderCart(); updateCartBadge(); }
+function removeFromCart(id, color = '') { 
+  saveCart(getCart().filter(c => !(c.id === id && c.selectedColor === color))); 
+  renderCart(); 
+  updateCartBadge(); 
+}
 
-function updateCartQty(id,delta) {
-  const cart=getCart(); const item=cart.find(c=>c.id===id);
+function updateCartQty(id, delta, color = '') {
+  const cart = getCart(); 
+  const item = cart.find(c => c.id === id && c.selectedColor === color);
   if (!item) return;
-  item.qty=Math.max(1,item.qty+delta);
-  saveCart(cart); renderCart(); updateCartBadge();
+  item.qty = Math.max(1, item.qty + delta);
+  saveCart(cart); 
+  renderCart(); 
+  updateCartBadge();
 }
 
 function updateCartBadge() {
@@ -295,14 +305,17 @@ function renderCart() {
     return `<div class="cart-item">
       <div class="cart-item-thumb">${item.img?`<img src="${item.img}" alt=""/>`:`<span>${item.emoji}</span>`}</div>
       <div class="cart-item-info">
-        <div class="cart-item-name">${escapeHtml((currentLang === 'ta' && item.nameTa) ? item.nameTa : item.name)}</div>
+        <div class="cart-item-name">
+          ${escapeHtml((currentLang === 'ta' && item.nameTa) ? item.nameTa : item.name)}
+          ${item.selectedColor ? `<div style="font-size:10px;color:var(--gold);">Color: ${escapeHtml(item.selectedColor)}</div>` : ''}
+        </div>
         <div class="cart-item-price">${escapeHtml(item.price)} × ${item.qty} = <b>${sub}</b></div>
       </div>
       <div class="cart-item-controls">
-        <button class="qty-btn" onclick="updateCartQty(${item.id},-1)">−</button>
+        <button class="qty-btn" onclick="updateCartQty(${item.id},-1,'${item.selectedColor || ''}')">−</button>
         <span class="qty-val">${item.qty}</span>
-        <button class="qty-btn" onclick="updateCartQty(${item.id},+1)">+</button>
-        <button class="cart-remove" onclick="removeFromCart(${item.id})">🗑</button>
+        <button class="qty-btn" onclick="updateCartQty(${item.id},+1,'${item.selectedColor || ''}')">+</button>
+        <button class="cart-remove" onclick="removeFromCart(${item.id},'${item.selectedColor || ''}')">🗑</button>
       </div></div>`;
   }).join('');
   const tot=document.getElementById('cartTotal');
@@ -426,7 +439,9 @@ async function fetchProducts() {
         emoji: p.emoji || '📦',
         bg: p.bg || 'linear-gradient(135deg,#f5f5f5,#eeeeee)',
         origin: p.origin || '',
-        img: p.img || null
+        img: p.img || null,
+        images: Array.isArray(p.images) ? p.images : (p.img ? [p.img] : []),
+        colors: Array.isArray(p.colors) ? p.colors : []
       }));
       updateCloudStatus('success', 'Cloud Connected');
     } else {
@@ -481,7 +496,12 @@ async function addProduct() {
       badge: 'New',
       emoji: '📦',
       bg: 'linear-gradient(135deg,#f5f5f5,#eeeeee)',
-      img: newImgData || null,
+      img: newImgData[0] || null,
+      images: newImgData,
+      colors: [
+        ...document.getElementById('new-colors').value.split(',').map(c => c.trim()).filter(c => c),
+        ...Array.from(document.querySelectorAll('#newImgGrid .img-spec-input')).map(i => i.value.trim()).filter(v => v)
+      ],
       origin: 'Annai Kitchen Artisan Studio'
     }]);
 
@@ -493,14 +513,17 @@ async function addProduct() {
   // Reset form
   document.getElementById('new-name').value  = '';
   document.getElementById('new-price').value = '';
-  newImgData = null;
-  const area = document.getElementById('newImgArea');
-  if (area) {
-    area.querySelector('.upload-icon').style.display = '';
-    area.querySelector('.upload-text').style.display = '';
-    const prev = area.querySelector('.preview-img');
-    if (prev) prev.remove();
-  }
+  document.getElementById('new-colors').value = '';
+  newImgData = [];
+  
+  const grid = document.getElementById('newImgGrid');
+  grid.innerHTML = `
+    <div class="img-upload-area" id="newImgArea">
+      <input type="file" accept="image/*" onchange="handleNewImg(this, 0)" />
+      <div class="upload-icon">📷</div>
+      <div class="upload-text">Primary Image</div>
+    </div>
+  `;
 
   showToast(`"${name}" added successfully! ✅`);
   fetchProducts();
@@ -524,7 +547,12 @@ async function saveEditProduct() {
     .update({
       name,
       price: priceStr,
-      img: editImgData || prod.img
+      img: editImgData[0] || prod.img,
+      images: editImgData,
+      colors: [
+        ...document.getElementById('edit-colors').value.split(',').map(c => c.trim()).filter(c => c),
+        ...Array.from(document.querySelectorAll('#editImgGrid .img-spec-input')).map(i => i.value.trim()).filter(v => v)
+      ]
     })
     .eq('id', prod.id);
 
@@ -534,6 +562,7 @@ async function saveEditProduct() {
   }
 
   closeModal('editProductModal');
+  editImgData = [];
   showToast('Product updated! ✅');
   fetchProducts();
 }
@@ -666,13 +695,13 @@ function renderGrid(gridId, prods) {
   // injecting product names into onclick strings (avoids quote-injection).
   grid.innerHTML = prods.map(p => `
     <div class="product-card" data-cat="${p.cat}">
-      <div class="product-img" style="background:${p.bg};">
+      <div class="product-img" style="background:${p.bg};" onclick="openProductDetail(${p.id})">
         ${p.img ? `<img src="${p.img}" alt="${escapeHtml(p.name)} – Authentic Tamil Nadu Product" loading="lazy" />` : `<span class="emoji-fallback">${p.emoji}</span>`}
         ${p.badge ? `<span class="product-badge">${p.badge}</span>` : ''}
         ${p.cat === 'pickle' || p.cat === 'saree' ? `<div class="holo-seal" title="Verified Pure Authentic"></div>` : ''}
       </div>
       <div class="product-body">
-        <div class="product-name">${escapeHtml((currentLang === 'ta' && p.nameTa) ? p.nameTa : p.name)}</div>
+        <div class="product-name" onclick="openProductDetail(${p.id})" style="cursor:pointer;">${escapeHtml((currentLang === 'ta' && p.nameTa) ? p.nameTa : p.name)}</div>
         ${(p.nameTa && currentLang === 'en') ? `<div class="product-name-ta">${escapeHtml(p.nameTa)}</div>` : ''}
         <div class="product-price">${escapeHtml(p.price)}</div>
         <button class="btn-trace" onclick="traceOrigin(${p.id})" data-i18n="traceOrigin">${i18n[currentLang].traceOrigin}</button>
@@ -1014,27 +1043,162 @@ function adminLogout() {
 // ──────────────────────────────────────────────
 // ADMIN: ADD / EDIT / DELETE PRODUCTS
 // ──────────────────────────────────────────────
-function handleNewImg(input) {
+function addNewImageField() {
+  const grid = document.getElementById('newImgGrid');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'admin-img-item';
+  const idx = grid.children.length;
+  wrapper.innerHTML = `
+    <div class="img-upload-area">
+      <input type="file" accept="image/*" onchange="handleNewImg(this, ${idx})" />
+      <div class="upload-icon">📷</div>
+      <div class="upload-text">Img ${idx + 1}</div>
+    </div>
+    <input type="text" class="img-spec-input" placeholder="Color/Spec for this img" data-idx="${idx}" />
+  `;
+  grid.appendChild(wrapper);
+}
+
+function handleNewImg(input, idx) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    newImgData = e.target.result;
-    const area = document.getElementById('newImgArea');
+    newImgData[idx] = e.target.result;
+    const area = input.parentElement;
     area.querySelector('.upload-icon').style.display = 'none';
-    area.querySelector('.upload-text').style.display = 'none';
+    const text = area.querySelector('.upload-text');
+    if (text) text.style.display = 'none';
     let prev = area.querySelector('.preview-img');
     if (!prev) {
       prev = document.createElement('img');
       prev.className = 'preview-img';
       area.appendChild(prev);
     }
-    prev.src = newImgData;
+    prev.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
+function addEditImageField() {
+  const grid = document.getElementById('editImgGrid');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'admin-img-item';
+  const idx = grid.children.length;
+  wrapper.innerHTML = `
+    <div class="img-upload-area">
+      <input type="file" accept="image/*" onchange="handleEditImg(this, ${idx})" />
+      <div class="upload-icon">📷</div>
+    </div>
+    <input type="text" class="img-spec-input" placeholder="Color/Spec" data-idx="${idx}" />
+  `;
+  grid.appendChild(wrapper);
+}
 
+function handleEditImg(input, idx) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    editImgData[idx] = e.target.result;
+    const area = input.parentElement;
+    area.querySelector('.upload-icon').style.display = 'none';
+    let prev = area.querySelector('.preview-img');
+    if (!prev) {
+      prev = document.createElement('img');
+      prev.className = 'preview-img';
+      area.appendChild(prev);
+    }
+    prev.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function openProductDetail(id) {
+  const p = getProducts().find(x => x.id === id);
+  if (!p) return;
+  activeProduct = p;
+  activeColor = '';
+  currentDetailIdx = 0;
+
+  document.getElementById('pd-title').textContent = (currentLang === 'ta' && p.nameTa) ? p.nameTa : p.name;
+  document.getElementById('pd-price').textContent = p.price;
+  document.getElementById('pd-badge').textContent = p.badge || 'New';
+  document.getElementById('pd-badge').style.display = p.badge ? 'block' : 'none';
+  document.getElementById('pd-desc').textContent = `Authentic ${p.cat} from ${p.origin || 'Annai Kitchen Artisan Studio'}. Handpicked for quality and tradition.`;
+
+  // Colors
+  const colorBox = document.getElementById('pd-colors');
+  if (p.colors && p.colors.length > 0) {
+    colorBox.innerHTML = p.colors.map(c => `<button class="color-pill" onclick="selectColor('${escapeHtml(c)}', this)">${escapeHtml(c)}</button>`).join('');
+    colorBox.parentElement.style.display = 'block';
+  } else {
+    colorBox.parentElement.style.display = 'none';
+  }
+
+  // Gallery
+  const images = p.images && p.images.length > 0 ? p.images : (p.img ? [p.img] : []);
+  const mainWrap = document.getElementById('pd-main-img-wrap');
+  const thumbs = document.getElementById('pd-gallery-thumbs');
+  
+  if (images.length > 0) {
+    mainWrap.innerHTML = `<img src="${images[0]}" id="pd-main-img" />`;
+    thumbs.innerHTML = images.map((img, i) => `
+      <div class="thumb ${i === 0 ? 'active' : ''}" onclick="changeDetailImg('${img}', this, ${i})">
+        <img src="${img}" />
+      </div>
+    `).join('');
+    
+    // Toggle nav buttons
+    const navBtns = document.querySelectorAll('.gallery-nav');
+    navBtns.forEach(btn => btn.style.display = images.length > 1 ? 'flex' : 'none');
+  } else {
+    mainWrap.innerHTML = `<span style="font-size:4rem;">${p.emoji || '📦'}</span>`;
+    thumbs.innerHTML = '';
+  }
+
+  // Add to cart listener
+  document.getElementById('pd-add-to-cart').onclick = () => {
+    if (p.colors && p.colors.length > 0 && !activeColor) {
+      showToast('Please select a color first! 🎨');
+      return;
+    }
+    addToCart(p.id, false, activeColor);
+    closeModal('productDetailModal');
+  };
+
+  openModal('productDetailModal');
+}
+
+function changeDetailImg(src, thumb, idx) {
+  document.getElementById('pd-main-img').src = src;
+  document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
+  if (thumb) thumb.classList.add('active');
+  currentDetailIdx = idx;
+}
+
+function prevDetailImg() {
+  if (!activeProduct) return;
+  const images = activeProduct.images || (activeProduct.img ? [activeProduct.img] : []);
+  if (images.length <= 1) return;
+  currentDetailIdx = (currentDetailIdx - 1 + images.length) % images.length;
+  const thumbs = document.querySelectorAll('.thumb');
+  changeDetailImg(images[currentDetailIdx], thumbs[currentDetailIdx], currentDetailIdx);
+}
+
+function nextDetailImg() {
+  if (!activeProduct) return;
+  const images = activeProduct.images || (activeProduct.img ? [activeProduct.img] : []);
+  if (images.length <= 1) return;
+  currentDetailIdx = (currentDetailIdx + 1) % images.length;
+  const thumbs = document.querySelectorAll('.thumb');
+  changeDetailImg(images[currentDetailIdx], thumbs[currentDetailIdx], currentDetailIdx);
+}
+
+function selectColor(color, btn) {
+  activeColor = color;
+  document.querySelectorAll('.color-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
 function renderAdminList() {
   const prods = getProducts();
   const list  = document.getElementById('adminProductList');
@@ -1045,12 +1209,13 @@ function renderAdminList() {
   list.innerHTML = prods.map((p, i) => `
     <div class="admin-product-item">
       <div class="admin-product-thumb">
-        ${p.img ? `<img src="${p.img}" alt="${p.name}" />` : p.emoji}
+        ${p.img ? `<img src="${p.img}" alt="${p.name}" />` : (p.images && p.images[0] ? `<img src="${p.images[0]}" />` : p.emoji)}
       </div>
       <div class="admin-product-details">
         <div class="name">${p.name}</div>
         <div class="price">${p.price}</div>
         <div class="cat">${p.cat}</div>
+        ${p.colors && p.colors.length > 0 ? `<div style="font-size:9px;color:var(--gold);">Colors: ${p.colors.join(', ')}</div>` : ''}
       </div>
       <div class="admin-product-actions">
         <button class="btn-edit"   onclick="openEditProduct(${i})">Edit</button>
@@ -1103,24 +1268,29 @@ function openEditProduct(idx) {
   document.getElementById('edit-idx').value   = idx;
   document.getElementById('edit-name').value  = p.name;
   document.getElementById('edit-price').value = p.price;
-  editImgData = p.img;
+  document.getElementById('edit-colors').value = p.colors ? p.colors.join(', ') : '';
+  
+  const grid = document.getElementById('editImgGrid');
+  grid.innerHTML = '';
+  editImgData = p.images || (p.img ? [p.img] : []);
 
-  const area = document.getElementById('editImgArea');
-  let prev   = area.querySelector('.preview-img');
-  if (p.img) {
-    area.querySelector('.upload-icon').style.display = 'none';
-    area.querySelector('.upload-text').style.display = 'none';
-    if (!prev) {
-      prev = document.createElement('img');
-      prev.className = 'preview-img';
-      area.appendChild(prev);
-    }
-    prev.src = p.img;
+  if (editImgData.length === 0) {
+    addEditImageField(); // Add at least one empty field
   } else {
-    area.querySelector('.upload-icon').style.display = '';
-    area.querySelector('.upload-text').style.display = '';
-    if (prev) prev.remove();
+    editImgData.forEach((img, i) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'admin-img-item';
+      wrapper.innerHTML = `
+        <div class="img-upload-area">
+          <input type="file" accept="image/*" onchange="handleEditImg(this, ${i})" />
+          <img src="${img}" class="preview-img" />
+        </div>
+        <input type="text" class="img-spec-input" placeholder="Color/Spec" value="${p.colors && p.colors[i] ? escapeHtml(p.colors[i]) : ''}" data-idx="${i}" />
+      `;
+      grid.appendChild(wrapper);
+    });
   }
+  
   openModal('editProductModal');
 }
 
