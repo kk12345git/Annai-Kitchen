@@ -262,22 +262,23 @@
 
 <!-- ══════════════════════════════════════════
      EDIT PRODUCT MODAL
+     Restored to allow product management
 ══════════════════════════════════════════ -->
 <div class="modal-overlay" id="editProductModal" role="dialog" aria-modal="true">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('editProductModal')">✕</button>
     <div class="modal-title">Edit Product ✏️</div>
     <input type="hidden" id="edit-idx" />
+    
     <label class="field-label">Product Name <span>*</span></label>
     <input class="form-input" id="edit-name" type="text" />
+    
     <label class="field-label">Price (₹) <span>*</span></label>
     <input class="form-input" id="edit-price" type="text" />
+    
     <label class="field-label">Images</label>
     <div class="img-upload-grid" id="editImgGrid">
-      <div class="img-upload-area" id="editImgArea">
-        <input type="file" accept="image/*" onchange="handleEditImg(this, 0)" />
-        <div class="upload-icon">📷</div>
-      </div>
+      <!-- Image areas will be populated by JS -->
     </div>
     <button class="btn-secondary" style="font-size:11px; padding:8px; margin-bottom:15px;" onclick="addEditImageField()">+ Add More Images</button>
 
@@ -454,7 +455,10 @@
   <h1 data-i18n="heroTitle">Annai's <span>Kitchen</span></h1>
   <div class="hero-sub" data-i18n="heroSub">Traditional Flavours, Timeless Style</div>
   <p class="hero-desc" data-i18n="heroDesc">Authentic homemade foods, handcrafted jewelry &amp; handwoven sarees — straight from the heart of Tamil Nadu.</p>
-  <button class="hero-cta" onclick="showSection('foods')" data-i18n="shopNow">🛒 Shop Now</button>
+  <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:16px;">
+    <button class="hero-cta" onclick="showSection('foods')" data-i18n="shopNow">🛒 Shop Now</button>
+    <button id="installAppBtn" class="hero-cta" style="display:none; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; box-shadow:none;">📲 Install App</button>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -667,7 +671,7 @@
       <label class="field-label">Product Image(s)</label>
       <div class="img-upload-grid" id="newImgGrid">
         <div class="img-upload-area" id="newImgArea">
-          <input type="file" accept="image/*" onchange="handleNewImg(this)" />
+          <input type="file" accept="image/*" onchange="handleNewImg(this, 0)" />
           <div class="upload-icon">📷</div>
           <div class="upload-text">Primary Image</div>
         </div>
