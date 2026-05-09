@@ -1199,6 +1199,7 @@ function selectColor(color, btn) {
   activeColor = color;
   document.querySelectorAll('.color-pill').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+}
 function renderAdminList() {
   const prods = getProducts();
   const list  = document.getElementById('adminProductList');
@@ -1292,26 +1293,6 @@ function openEditProduct(idx) {
   }
   
   openModal('editProductModal');
-}
-
-function handleEditImg(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    editImgData = e.target.result;
-    const area = document.getElementById('editImgArea');
-    area.querySelector('.upload-icon').style.display = 'none';
-    area.querySelector('.upload-text').style.display = 'none';
-    let prev = area.querySelector('.preview-img');
-    if (!prev) {
-      prev = document.createElement('img');
-      prev.className = 'preview-img';
-      area.appendChild(prev);
-    }
-    prev.src = editImgData;
-  };
-  reader.readAsDataURL(file);
 }
 
 
@@ -1928,44 +1909,6 @@ async function renderAdminCustomers() {
       </div>
     </div>
   `).join('');
-}
-
-async function renderAdminOrdersFromCloud() {
-  const list = document.getElementById('adminOrdersList');
-  if (!list || !sb) return;
-  
-  list.innerHTML = '<div class="loading-spinner">Loading cloud orders...</div>';
-  
-  const { data, error } = await sb
-    .from('orders')
-    .select('*')
-    .order('created_at', { ascending: false });
-    
-  if (error) {
-    list.innerHTML = '<p>Failed to load cloud orders.</p>';
-    return;
-  }
-  
-  if (data.length === 0) {
-    list.innerHTML = '<p>No orders found in cloud database.</p>';
-    return;
-  }
-  
-  list.innerHTML = data.map(order => {
-    const itemsText = order.items.map(i => `${i.name} × ${i.qty}`).join(', ');
-    return `
-      <div class="admin-product-item" style="flex-direction:column;align-items:flex-start;">
-        <div style="display:flex;justify-content:space-between;width:100%;">
-          <div style="font-weight:600;color:var(--rust);">Order #${order.order_id}</div>
-          <button class="btn-edit" style="padding:4px 8px;font-size:11px;" onclick="openInvoiceGenerator('${order.order_id}')">📄 Invoice</button>
-        </div>
-        <div style="font-size:12px;color:#666;">${new Date(order.created_at).toLocaleString()}</div>
-        <div style="margin:8px 0;">${escapeHtml(order.customer_name)} | ${order.phone}</div>
-        <div style="font-size:12px;">${escapeHtml(itemsText)}</div>
-        <div style="margin-top:4px;font-weight:600;">Total: ₹${order.total}</div>
-      </div>
-    `;
-  }).join('');
 }
 
 function mountClerkUI() {
