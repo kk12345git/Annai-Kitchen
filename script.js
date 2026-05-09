@@ -487,7 +487,7 @@ async function addProduct() {
     return;
   }
 
-  const { error } = await sb
+  let { data, error } = await sb
     .from('products')
     .insert([{
       name,
@@ -504,6 +504,24 @@ async function addProduct() {
       ],
       origin: 'Annai Kitchen Artisan Studio'
     }]);
+
+  // GRACEFUL DEGRADATION: If 'colors' or 'images' column is missing, try a simpler insert
+  if (error && (error.message.includes('colors') || error.message.includes('images'))) {
+    console.warn('Database schema not updated. Retrying without colors/images columns...');
+    const retry = await sb
+      .from('products')
+      .insert([{
+        name,
+        price: priceStr,
+        cat,
+        badge: 'New',
+        emoji: '📦',
+        bg: 'linear-gradient(135deg,#f5f5f5,#eeeeee)',
+        img: newImgData[0] || null,
+        origin: 'Annai Kitchen Artisan Studio (Update DB for full features)'
+      }]);
+    error = retry.error;
+  }
 
   if (error) {
     showToast('Error adding product: ' + error.message);
@@ -542,7 +560,7 @@ async function saveEditProduct() {
   
   if (!sb) return;
 
-  const { error } = await sb
+  let { error } = await sb
     .from('products')
     .update({
       name,
@@ -555,6 +573,20 @@ async function saveEditProduct() {
       ]
     })
     .eq('id', prod.id);
+
+  // GRACEFUL DEGRADATION
+  if (error && (error.message.includes('colors') || error.message.includes('images'))) {
+    console.warn('Database schema not updated. Retrying simple update...');
+    const retry = await sb
+      .from('products')
+      .update({
+        name,
+        price: priceStr,
+        img: editImgData[0] || prod.img
+      })
+      .eq('id', prod.id);
+    error = retry.error;
+  }
 
   if (error) {
     showToast('Error updating product: ' + error.message);
