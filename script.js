@@ -476,7 +476,6 @@ async function addProduct() {
     .from('products')
     .insert([{
       name,
-      name_ta: '',
       price: priceStr,
       cat,
       badge: 'New',
