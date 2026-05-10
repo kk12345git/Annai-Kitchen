@@ -274,22 +274,29 @@
 
 <!-- ══════════════════════════════════════════
      EDIT PRODUCT MODAL
+     Restored to allow product management
 ══════════════════════════════════════════ -->
 <div class="modal-overlay" id="editProductModal" role="dialog" aria-modal="true">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('editProductModal')">✕</button>
     <div class="modal-title">Edit Product ✏️</div>
     <input type="hidden" id="edit-idx" />
+    
     <label class="field-label">Product Name <span>*</span></label>
     <input class="form-input" id="edit-name" type="text" />
+    
     <label class="field-label">Price (₹) <span>*</span></label>
     <input class="form-input" id="edit-price" type="text" />
-    <label class="field-label">Image</label>
-    <div class="img-upload-area" id="editImgArea">
-      <input type="file" accept="image/*" onchange="handleEditImg(this)" />
-      <div class="upload-icon">📷</div>
-      <div class="upload-text">Click to change image</div>
+    
+    <label class="field-label">Images</label>
+    <div class="img-upload-grid" id="editImgGrid">
+      <!-- Image areas will be populated by JS -->
     </div>
+    <button class="btn-secondary" style="font-size:11px; padding:8px; margin-bottom:15px;" onclick="addEditImageField()">+ Add More Images</button>
+
+    <label class="field-label">Colors (comma separated)</label>
+    <input class="form-input" id="edit-colors" type="text" />
+
     <button class="btn-primary" onclick="saveEditProduct()">Save Changes</button>
   </div>
 </div>
@@ -461,7 +468,10 @@
   <h1 data-i18n="heroTitle">Annai's <span>Kitchen</span></h1>
   <div class="hero-sub" data-i18n="heroSub">Traditional Flavours, Timeless Style</div>
   <p class="hero-desc" data-i18n="heroDesc">Authentic homemade foods, handcrafted jewelry &amp; handwoven sarees — straight from the heart of Tamil Nadu.</p>
-  <button class="hero-cta" onclick="showSection('foods')" data-i18n="shopNow">🛒 Shop Now</button>
+  <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:16px;">
+    <button class="hero-cta" onclick="showSection('foods')" data-i18n="shopNow">🛒 Shop Now</button>
+    <button id="installAppBtn" class="hero-cta" style="display:none; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; box-shadow:none;">📲 Install App</button>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -671,12 +681,20 @@
         <option value="saree">Saree / Kurti</option>
         <option value="other">Other</option>
       </select>
-      <label class="field-label">Product Image</label>
-      <div class="img-upload-area" id="newImgArea">
-        <input type="file" accept="image/*" onchange="handleNewImg(this)" />
-        <div class="upload-icon">📷</div>
-        <div class="upload-text">Click to upload product image</div>
+      <label class="field-label">Product Image(s)</label>
+      <div class="img-upload-grid" id="newImgGrid">
+        <div class="img-upload-area" id="newImgArea">
+          <input type="file" accept="image/*" onchange="handleNewImg(this, 0)" />
+          <div class="upload-icon">📷</div>
+          <div class="upload-text">Primary Image</div>
+        </div>
+        <!-- Additional images will be added here -->
       </div>
+      <button class="btn-secondary" style="font-size:11px; padding:8px; margin-bottom:15px;" onclick="addNewImageField()">+ Add More Images</button>
+
+      <label class="field-label">Colors (comma separated)</label>
+      <input class="form-input" id="new-colors" type="text" placeholder="e.g. Red, Blue, Gold" />
+
       <button class="btn-primary" onclick="addProduct()">Add Product →</button>
     </div>
 
@@ -696,6 +714,50 @@
   </div>
 </section>
 </main>
+
+<!-- ══════════════════════════════════════════
+     PRODUCT DETAIL MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="productDetailModal" role="dialog" aria-modal="true">
+  <div class="modal-box product-detail-box">
+    <button class="modal-close" onclick="closeModal('productDetailModal')">✕</button>
+    
+    <div class="product-gallery">
+      <div class="gallery-main" id="pd-gallery-main">
+        <button class="gallery-nav prev" onclick="prevDetailImg()">❮</button>
+        <div id="pd-main-img-wrap">
+          <!-- Main image will be here -->
+        </div>
+        <button class="gallery-nav next" onclick="nextDetailImg()">❯</button>
+      </div>
+      <div class="gallery-thumbs" id="pd-gallery-thumbs">
+        <!-- Thumbnails will be here -->
+      </div>
+    </div>
+
+    <div class="product-info-panel">
+      <div class="pd-badge" id="pd-badge">New</div>
+      <h2 class="pd-title" id="pd-title">Product Name</h2>
+      <div class="pd-price" id="pd-price">₹0</div>
+      
+      <div class="pd-section">
+        <label class="pd-label">Choose Color</label>
+        <div class="pd-colors" id="pd-colors">
+          <!-- Color options will be here -->
+        </div>
+      </div>
+
+      <div class="pd-section">
+        <label class="pd-label">Description</label>
+        <p class="pd-desc" id="pd-desc">Authentic homemade quality from Annai's Kitchen.</p>
+      </div>
+
+      <div class="pd-actions">
+        <button class="btn-primary" id="pd-add-to-cart">Add to Cart 🛒</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════
      FOOTER
