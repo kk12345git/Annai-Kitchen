@@ -408,13 +408,14 @@ body {
 .product-card:hover::after { opacity: 1; }
 
 .product-img {
-  height: 160px;
+  height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
-  background: rgba(255,255,255,0.02);
+  background: radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 70%);
+  padding: 10px;
 }
 .product-img img {
   width: 100%; height: 100%;
@@ -966,7 +967,7 @@ body {
   font-size: 2rem;
   overflow: hidden;
 }
-.cart-item-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.cart-item-thumb img { width: 100%; height: 100%; object-fit: contain; }
 .cart-item-info { flex: 1; }
 .cart-item-name { font-weight: 700; color: #fff; font-size: 15px; margin-bottom: 4px; }
 .cart-item-price { color: var(--gold); font-size: 13px; font-weight: 600; }
@@ -1171,7 +1172,7 @@ body {
   flex-shrink: 0;
   overflow: hidden;
 }
-.admin-product-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.admin-product-thumb img { width: 100%; height: 100%; object-fit: contain; }
 .admin-product-details { flex: 1; }
 .admin-product-details .name { font-size: 14px; font-weight: 600; color: var(--deep); }
 .admin-product-details .price { font-size: 13px; color: var(--green); font-weight: 600; }
@@ -1201,8 +1202,8 @@ body {
 }
 .img-upload-area {
   width: 100%;
-  height: 120px;
-  border: 2px dashed #e8d5be;
+  height: 180px; /* Taller preview area */
+  border: 2px dashed var(--glass-border);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -1210,9 +1211,10 @@ body {
   justify-content: center;
   cursor: pointer;
   margin-bottom: 14px;
-  transition: border-color 0.2s;
+  transition: all 0.3s;
   position: relative;
   overflow: hidden;
+  background: rgba(0,0,0,0.2);
 }
 .img-upload-area:hover { border-color: var(--gold); }
 .img-upload-area input[type=file] {
@@ -1224,7 +1226,7 @@ body {
 .img-upload-area .preview-img {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 /* ── RESPONSIVE & POLISH ── */
